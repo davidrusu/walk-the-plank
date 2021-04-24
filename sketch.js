@@ -9,10 +9,13 @@ const div = p5.Vector.div;
 const Engine = Matter.Engine;
 const Render = Matter.Render;
 const World = Matter.World;
+const Body = Matter.Body;
 const Bodies = Matter.Bodies;
 const Mouse = Matter.Mouse;
 const MouseConstraint = Matter.MouseConstraint;
 const Constraint = Matter.Constraint;
+const Composite = Matter.Composite;
+const Composites = Matter.Composites;
 
 // matter objects
 let engine;
@@ -68,7 +71,7 @@ function setup() {
 
   /////////// matter code ///////////
   engine = Engine.create();
-
+  engine.gravity.y = 0.05;
   personBody = Bodies.rectangle(
     windowWidth / 2,
     100,
@@ -96,6 +99,9 @@ function setup() {
   mouseConstraint.mouse.pixelRatio = pixelDensity();
   World.add(engine.world, mouseConstraint);
 
+  for (var i = 0; i < 10; i++) {
+    spawnJellyFish(random(windowWidth), random(windowHeight));
+  }
   Engine.run(engine);
   ///////////////////////////////////
 
@@ -116,6 +122,54 @@ function setup() {
       radius: random(3, 10),
     });
   }
+}
+
+let jellies = [];
+function spawnJellyFish(x, y) {
+  let width = 40;
+  let head = Bodies.trapezoid(x, y, width, 10, PI / 6);
+  let jelly = Composite.create();
+  Composite.add(jelly, head);
+
+  let tentacles = [];
+  let N = 3;
+  for (var i = 0; i < N; i++) {
+    let p = i / (N - 1);
+    var group = Body.nextGroup(true);
+    let joinX = (p - 0.5) * width * 0.5;
+    let joinY = 0;
+    let tentacle = Composites.stack(x + joinX, y + joinY, 1, 8, 0, 0, function (
+      x,
+      y
+    ) {
+      return Bodies.rectangle(x, y, 5, 2, {});
+    });
+    Composites.chain(tentacle, 0.5, 0, -0.5, 0, {
+      stiffness: 0.8,
+      length: 2,
+    });
+    Composite.add(jelly, tentacle);
+    Composite.add(
+      jelly,
+      Constraint.create({
+        bodyA: head,
+        bodyB: tentacle.bodies[0],
+        pointA: { x: joinX, y: joinY },
+        stiffness: 0.5,
+      })
+    );
+    tentacles.push(tentacle);
+  }
+
+  jellies.push([jelly, tentacles]);
+  Composite.add(engine.world, jelly);
+}
+
+function drawJellyFish() {
+  jellies.forEach(([j, ts]) => {
+    j.bodies.forEach((b) => drawVerticies(b.vertices));
+    ts.forEach((t) => t.bodies.forEach((b) => drawVerticies(b.vertices)));
+  });
 }
 
 function windowResized() {
@@ -314,11 +368,12 @@ function draw() {
   // draw matter stuff
   stroke(255);
   fill(255);
-  drawVertices(personBody.vertices);
-  drawVertices(rockBody.vertices);
+  drawVerticies(personBody.vertices);
+  drawVerticies(rockBody.vertices);
   stroke(128);
   strokeWeight(2);
   drawConstraint(chainConstraint);
+  drawJellyFish();
 }
 
 function drawConstraint(constraint) {
@@ -340,7 +395,7 @@ function drawConstraint(constraint) {
   );
 }
 
-function drawVertices(vertices) {
+function drawVerticies(vertices) {
   beginShape();
   for (let i = 0; i < vertices.length; i++) {
     vertex(vertices[i].x, vertices[i].y);
