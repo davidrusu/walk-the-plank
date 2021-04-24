@@ -22,6 +22,7 @@ const Vector = Matter.Vector;
 let engine;
 let chainConstraint;
 let personBody;
+let chain;
 let rockBody;
 
 const AIR = 0.9;
@@ -82,15 +83,20 @@ function setup() {
     PERSON_HEIGHT,
     { inertia: Infinity }
   );
-  var chain = Composites.stack(windowWidth / 2, 100, 3, 1, 10, 10, function (
-    x,
-    y
-  ) {
-    console.log(x, y);
-    return Bodies.rectangle(x, y, 15, 3, {
-      collisionFilter: { group: group },
-    });
-  });
+  chain = Composites.stack(
+    personBody.position.x,
+    personBody.position.y + PERSON_HEIGHT / 2,
+    8,
+    1,
+    10,
+    10,
+    function (x, y) {
+      console.log(x, y);
+      return Bodies.rectangle(x, y, 15, 3, {
+        collisionFilter: { group: group },
+      });
+    }
+  );
   Composites.chain(chain, 0.3, 0, -0.3, 0, { stiffness: 1, length: 0 });
   Composite.add(
     chain,
@@ -102,10 +108,17 @@ function setup() {
       stiffness: 0.5,
     })
   );
-  rockBody = Bodies.polygon(windowWidth / 2 + 150, 50, 1, 15);
+  let lastChainBody = chain.bodies[chain.bodies.length - 1];
+  rockBody = Bodies.polygon(
+    lastChainBody.position.x,
+    lastChainBody.position.y,
+    1,
+    15
+  );
   chainConstraint = Constraint.create({
     bodyA: chain.bodies[chain.bodies.length - 1],
     bodyB: rockBody,
+    pointB: { x: 0, y: -15 },
     stiffness: 0.5,
   });
 
@@ -199,7 +212,7 @@ function updateJellySystem() {
 function drawJellySystem() {
   jellies.forEach(([h, ts]) => {
     drawVerticies(h.vertices);
-    ts.forEach((t) => t.bodies.forEach((b) => drawVerticies(b.vertices)));
+    ts.forEach((t) => drawComposite(t));
   });
 }
 
@@ -404,6 +417,7 @@ function draw() {
   drawVerticies(rockBody.vertices);
   stroke(128);
   strokeWeight(2);
+  drawComposite(chain);
   drawConstraint(chainConstraint);
   drawJellySystem();
 }
@@ -425,6 +439,10 @@ function drawConstraint(constraint) {
     posB.x + offsetB.x,
     posB.y + offsetB.y
   );
+}
+
+function drawComposite(composite) {
+  composite.bodies.forEach((b) => drawVerticies(b.vertices));
 }
 
 function drawVerticies(vertices) {
