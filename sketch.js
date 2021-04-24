@@ -5,10 +5,10 @@ let ball;
 let chainLength = 150;
 let targetNumBubbles = 100;
 let bubbles = [];
-let outOfEnergyTime=-100000;
-let PERSON_WIDTH = 30;
-let PERSON_HEIGHT = 70;
-let MAX_ENERGY = 2000
+let outOfEnergyTime = -100000;
+let MAX_ENERGY = 2000;
+let PERSON_WIDTH = 32;
+let PERSON_HEIGHT = 48;
 let ANCHOR_POINT_DELTA;
 let PERSON;
 let AIR = 0.9;
@@ -17,6 +17,17 @@ let addo = p5.Vector.add;
 let subo = p5.Vector.sub;
 let multo = p5.Vector.mult;
 let divo = p5.Vector.div;
+
+let pirateIdleSpriteSheet;
+
+function preload() {
+  pirateIdleSpriteSheet = loadSpriteSheet(
+    "assets/pirate_idle_spritesheet.png",
+    16,
+    24,
+    8
+  );
+}
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -28,9 +39,9 @@ function setup() {
   PERSON = {
     pos: addo(ball.pos, ANCHOR_POINT_DELTA),
     velocity: createVector(0, 0),
-    energy: MAX_ENERGY
+    energy: MAX_ENERGY,
   };
-  for (var i=0; i < targetNumBubbles;i++){
+  for (var i = 0; i < targetNumBubbles; i++) {
     bubbles.push({
       pos: createVector(random(0, windowWidth), random(0, windowHeight)),
       velocity: createVector(0, random(-0.1, -0.2)),
@@ -67,7 +78,7 @@ function updatePerson() {
   dir.mult(0.03);
   PERSON.velocity.add(dir);
   ball.velocity.add(0, GRAVITY / clampedDt);
-  swimUp(mouseIsPressed)
+  swimUp(mouseIsPressed);
   PERSON.velocity.mult(lerp(AIR, 1, 0.8));
   PERSON.pos.add(multo(PERSON.velocity, deltaTime));
 }
@@ -78,12 +89,12 @@ function swimUp(m) {
     PERSON.velocity.add(createVector(0, -0.05));
     PERSON.energy = max(PERSON.energy - deltaTime, 0);
     if (PERSON.energy == 0) {
-      outOfEnergyTime = millis()
+      outOfEnergyTime = millis();
     }
-  } else if (pauseIsOver){
-      PERSON.energy = min(PERSON.energy + deltaTime * 0.3, MAX_ENERGY);
+  } else if (pauseIsOver) {
+    PERSON.energy = min(PERSON.energy + deltaTime * 0.3, MAX_ENERGY);
   }
-  rect(0,windowHeight-50,windowWidth*PERSON.energy/MAX_ENERGY,20)
+  rect(0, windowHeight - 50, (windowWidth * PERSON.energy) / MAX_ENERGY, 20);
 }
 
 function updateBubbleSystem() {
@@ -111,12 +122,14 @@ function updateBubbleSystem() {
       toRemove.push(i);
     }
   }
+
   toRemove.reverse();
   for (var i of toRemove) {
     bubbles.splice(i, 1);
   }
 }
 
+let pirateFrame = 0;
 function draw() {
   background(10, 30, 50);
   let mouse = createVector(mouseX, mouseY);
@@ -125,7 +138,17 @@ function draw() {
   updatePerson();
   updateBubbleSystem();
   fill(255);
-  rect(PERSON.pos.x, PERSON.pos.y, PERSON_WIDTH, PERSON_HEIGHT, 10, 10, 10, 10);
+  pirateIdleSpriteSheet.drawFrame(
+    pirateFrame,
+    PERSON.pos.x,
+    PERSON.pos.y,
+    PERSON_WIDTH,
+    PERSON_HEIGHT
+  );
+  if (frameCount % 10 == 0) {
+    pirateFrame = (pirateFrame + 1) % 8;
+  }
+  // rect(PERSON.pos.x, PERSON.pos.y, PERSON_WIDTH, PERSON_HEIGHT, 10, 10, 10, 10);
   line(ball.pos.x, ball.pos.y, pirateLegs.x, pirateLegs.y);
   fill(0);
   ellipse(ball.pos.x, ball.pos.y, 50, 50);
