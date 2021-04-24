@@ -136,7 +136,6 @@ function updateBubbleSystem() {
   }
 }
 
-let pirateFrame = 0;
 let rockFrame = 0;
 function draw() {
   background(10, 30, 50);
@@ -146,6 +145,7 @@ function draw() {
   updatePerson();
   updateBubbleSystem();
   fill(255);
+  let pirateFrame = floor((mouseX / windowWidth) * 8);
   pirateIdleSpriteSheet.drawFrame(
     pirateFrame,
     PERSON.pos.x,
@@ -153,9 +153,6 @@ function draw() {
     PERSON_WIDTH,
     PERSON_HEIGHT
   );
-  if (frameCount % 10 == 0) {
-    pirateFrame = (pirateFrame + 1) % 8;
-  }
   stroke(60);
   strokeWeight(4);
   noFill();
