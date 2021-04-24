@@ -38,6 +38,7 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  matter.init();
   ball = {
     pos: createVector(windowWidth / 2, windowHeight / 2),
     velocity: createVector(0, 0),
