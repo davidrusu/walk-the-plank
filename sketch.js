@@ -6,16 +6,16 @@ const sub = p5.Vector.sub;
 const mult = p5.Vector.mult;
 const div = p5.Vector.div;
 
-const Engine = Matter.Engine;
-const Render = Matter.Render;
-const World = Matter.World;
-const Body = Matter.Body;
 const Bodies = Matter.Bodies;
-const Mouse = Matter.Mouse;
-const MouseConstraint = Matter.MouseConstraint;
-const Constraint = Matter.Constraint;
+const Body = Matter.Body;
 const Composite = Matter.Composite;
 const Composites = Matter.Composites;
+const Constraint = Matter.Constraint;
+const Engine = Matter.Engine;
+const Mouse = Matter.Mouse;
+const MouseConstraint = Matter.MouseConstraint;
+const Render = Matter.Render;
+const World = Matter.World;
 
 // matter objects
 let engine;
@@ -72,6 +72,8 @@ function setup() {
   /////////// matter code ///////////
   engine = Engine.create();
   engine.gravity.y = 0.05;
+
+  group = Body.nextGroup(true);
   personBody = Bodies.rectangle(
     windowWidth / 2,
     100,
@@ -79,16 +81,39 @@ function setup() {
     PERSON_HEIGHT,
     { inertia: Infinity }
   );
-  rockBody = Bodies.polygon(windowWidth / 2, 250, 1, 15);
+  var chain = Composites.stack(
+    windowWidth / 2,
+    100,
+    3,
+    1,
+    10,
+    10,
+    function (x, y) {
+      console.log(x, y);
+      return Bodies.rectangle(x, y, 15, 3, {
+        collisionFilter: { group: group },
+      });
+    }
+  );
+  Composites.chain(chain, 0.3, 0, -0.3, 0, { stiffness: 1, length: 0 });
+  Composite.add(
+    chain,
+    Constraint.create({
+      bodyB: chain.bodies[0],
+      pointB: { x: -10, y: 0 },
+      bodyA: personBody,
+      pointA: { x: 0, y: PERSON_HEIGHT / 2 },
+      stiffness: 0.5,
+    })
+  );
+  rockBody = Bodies.polygon(windowWidth / 2 + 150, 50, 1, 15);
   chainConstraint = Constraint.create({
-    bodyA: personBody,
-    pointA: { x: 0, y: PERSON_HEIGHT / 2 },
+    bodyA: chain.bodies[chain.bodies.length - 1],
     bodyB: rockBody,
-    pointB: { x: 0, y: 0 },
-    stiffness: 0.01,
+    stiffness: 0.5,
   });
 
-  World.add(engine.world, [personBody, rockBody, chainConstraint]);
+  World.add(engine.world, [personBody, rockBody, chain, chainConstraint]);
 
   const mouse = Mouse.create(canvas.elt);
   const mouseParams = {
@@ -138,12 +163,17 @@ function spawnJellyFish(x, y) {
     var group = Body.nextGroup(true);
     let joinX = (p - 0.5) * width * 0.5;
     let joinY = 0;
-    let tentacle = Composites.stack(x + joinX, y + joinY, 1, 8, 0, 0, function (
-      x,
-      y
-    ) {
-      return Bodies.rectangle(x, y, 5, 2, {});
-    });
+    let tentacle = Composites.stack(
+      x + joinX,
+      y + joinY,
+      1,
+      8,
+      0,
+      0,
+      function (x, y) {
+        return Bodies.rectangle(x, y, 5, 2, {});
+      }
+    );
     Composites.chain(tentacle, 0.5, 0, -0.5, 0, {
       stiffness: 0.8,
       length: 2,
@@ -372,7 +402,6 @@ function draw() {
   drawVerticies(rockBody.vertices);
   stroke(128);
   strokeWeight(2);
-  drawConstraint(chainConstraint);
   drawJellyFish();
 }
 
