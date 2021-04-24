@@ -64,29 +64,34 @@ function preload() {
 }
 
 function setup() {
-
   canvas = createCanvas(windowWidth, windowHeight);
 
   /////////// matter code ///////////
-  engine = Engine.create()
+  engine = Engine.create();
 
-  personBody = Bodies.rectangle(windowWidth/2, 100, PERSON_WIDTH, PERSON_HEIGHT, {inertia:Infinity})
-  rockBody = Bodies.polygon(windowWidth/2, 250, 1, 15)
+  personBody = Bodies.rectangle(
+    windowWidth / 2,
+    100,
+    PERSON_WIDTH,
+    PERSON_HEIGHT,
+    { inertia: Infinity }
+  );
+  rockBody = Bodies.polygon(windowWidth / 2, 250, 1, 15);
   chainConstraint = Constraint.create({
     bodyA: personBody,
-    pointA: { x: 0, y: PERSON_HEIGHT/2 },
+    pointA: { x: 0, y: PERSON_HEIGHT / 2 },
     bodyB: rockBody,
     pointB: { x: 0, y: 0 },
-    stiffness: 0.01
+    stiffness: 0.01,
   });
 
-  World.add(engine.world, [personBody, rockBody, chainConstraint])
+  World.add(engine.world, [personBody, rockBody, chainConstraint]);
 
   const mouse = Mouse.create(canvas.elt);
   const mouseParams = {
     mouse: mouse,
-    constraint: { stiffness: 0.05 }
-  }
+    constraint: { stiffness: 0.05 },
+  };
   mouseConstraint = MouseConstraint.create(engine, mouseParams);
   mouseConstraint.mouse.pixelRatio = pixelDensity();
   World.add(engine.world, mouseConstraint);
@@ -265,7 +270,7 @@ function draw() {
   updateBubbleSystem();
   fill(255);
 
-  let pirateFrame = floor((mouseX / windowWidth) * 8);
+  let pirateFrame = floor(min(mouseX / windowWidth, 1) * 7);
   let pirateSpriteSheet = pirateIdleSpriteSheet;
   if (swimming) {
     if (frameCount % 10 == 0) {
@@ -309,21 +314,21 @@ function draw() {
   // draw matter stuff
   stroke(255);
   fill(255);
-  drawVertices(personBody.vertices)
-  drawVertices(rockBody.vertices)
+  drawVertices(personBody.vertices);
+  drawVertices(rockBody.vertices);
   stroke(128);
   strokeWeight(2);
-  drawConstraint(chainConstraint)
+  drawConstraint(chainConstraint);
 }
 
 function drawConstraint(constraint) {
   const offsetA = constraint.pointA;
-  let posA = {x:0, y:0};
+  let posA = { x: 0, y: 0 };
   if (constraint.bodyA) {
     posA = constraint.bodyA.position;
   }
   const offsetB = constraint.pointB;
-  let posB = {x:0, y:0};
+  let posB = { x: 0, y: 0 };
   if (constraint.bodyB) {
     posB = constraint.bodyB.position;
   }
