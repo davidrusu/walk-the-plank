@@ -120,13 +120,31 @@ function swimUp(m) {
 }
 
 function updateBubbleSystem() {
-  if (bubbles.length < targetNumBubbles && random() < 0.1) {
+  if (random() < 0.05) {
     bubbles.push({
       pos: createVector(random(0, windowWidth), windowHeight),
       velocity: createVector(0, random(-0.1, -0.2)),
       radius: random(3, 10),
     });
   }
+
+  let noiseTime = millis() * 0.0001;
+  let noiseScale = 0.1;
+  if (random() < (swimming ? 0.5 : 0.1)) {
+    let pos = addo(PERSON.pos, createVector(PERSON_WIDTH / 2, 10));
+    bubbles.push({
+      pos: pos,
+      velocity: multo(
+        createVector(
+          noise(pos.x * noiseScale, noiseTime) - 0.5,
+          noise(pos.y * noiseScale, noiseTime) - 0.5
+        ),
+        0.5
+      ),
+      radius: random(1, 15),
+    });
+  }
+
   let toRemove = [];
   for (var i = 0; i < bubbles.length; i++) {
     let bubble = bubbles[i];
@@ -135,11 +153,13 @@ function updateBubbleSystem() {
     circle(bubble.pos.x, bubble.pos.y, bubble.radius);
     bubble.pos.add(multo(bubble.velocity, deltaTime));
     let randomness = createVector(
-      noise(bubble.pos.x) - 0.5,
-      noise(bubble.pos.y) - 0.5
+      noise(bubble.pos.x * noiseScale, noiseTime) - 0.5,
+      noise(bubble.pos.y * noiseScale, noiseTime) - 0.5
     );
     randomness.mult(0.01);
     bubble.velocity.add(randomness);
+    bubble.velocity.add(0, -0.005);
+    bubble.velocity.mult(lerp(AIR, 1, 0.8));
     if (bubble.pos.y < 0) {
       toRemove.push(i);
     }
