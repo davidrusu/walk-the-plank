@@ -81,7 +81,7 @@ function setup() {
     100,
     PERSON_WIDTH,
     PERSON_HEIGHT,
-    { inertia: Infinity }
+    { inertia: Infinity, frictionAir: 0.03 }
   );
   chain = Composites.stack(
     personBody.position.x,
@@ -171,12 +171,17 @@ function spawnJelly(x, y) {
     var group = Body.nextGroup(true);
     let joinX = (p - 0.5) * width * 0.5;
     let joinY = 0;
-    let tentacle = Composites.stack(x + joinX, y + joinY, 1, 8, 0, 0, function (
-      x,
-      y
-    ) {
-      return Bodies.rectangle(x, y, 5, 2, {});
-    });
+    let tentacle = Composites.stack(
+      x + joinX,
+      y + joinY,
+      1,
+      8,
+      0,
+      0,
+      function (x, y) {
+        return Bodies.rectangle(x, y, 5, 2);
+      }
+    );
     Composites.chain(tentacle, 0.5, 0, -0.5, 0, {
       stiffness: 0.8,
       length: 2,
