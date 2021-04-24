@@ -3,6 +3,7 @@ let libs = ["https://cdn.jsdelivr.net/npm/p5.collide2d"];
 // https://code-dot-org.github.io/p5.play/docs/classes/SpriteSheet.html
 let ball;
 let chainLength = 150;
+let outOfEnergyTime=-100000;
 let PERSON_WIDTH = 30;
 let PERSON_HEIGHT = 70;
 let MAX_ENERGY = 2000
@@ -14,6 +15,7 @@ let addo = p5.Vector.add;
 let subo = p5.Vector.sub;
 let multo = p5.Vector.mult;
 let divo = p5.Vector.div;
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   ball = {
@@ -27,6 +29,11 @@ function setup() {
     energy: MAX_ENERGY
   };
 }
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
 function updateBallPos(anchor) {
   let clampedDt = max(deltaTime, 1.0);
   oldPosition = ball.pos;
@@ -43,11 +50,12 @@ function updateBallPos(anchor) {
   ball.velocity.mult(AIR);
   ball.velocity.add(0, GRAVITY / clampedDt);
 }
+
 function updatePerson() {
   let clampedDt = max(deltaTime, 1.0);
   let mouse = createVector(mouseX, mouseY);
-  let dir = subo(mouse, PERSON.pos);
-  dir.mult(0.0001);
+  let dir = subo(mouse, PERSON.pos).normalize();
+  dir.mult(0.03);
   PERSON.velocity.add(dir);
   ball.velocity.add(0, GRAVITY / clampedDt);
   swimUp(mouseIsPressed)
@@ -56,11 +64,15 @@ function updatePerson() {
 }
 
 function swimUp(m) {
-  if (m && PERSON.energy > 0) {
+  pauseIsOver = millis() - outOfEnergyTime > 1000;
+  if (m && PERSON.energy > 0 && pauseIsOver) {
     PERSON.velocity.add(createVector(0, -0.05));
     PERSON.energy = max(PERSON.energy - deltaTime, 0);
-  } else {
-    PERSON.energy = min(PERSON.energy + deltaTime * 0.3, MAX_ENERGY);
+    if (PERSON.energy == 0) {
+      outOfEnergyTime = millis()
+    }
+  } else if (pauseIsOver){
+      PERSON.energy = min(PERSON.energy + deltaTime * 0.3, MAX_ENERGY);
   }
   rect(0,windowHeight-50,windowWidth*PERSON.energy/MAX_ENERGY,20)
 }
@@ -97,6 +109,7 @@ function updateBubbleSystem() {
     bubbles.splice(i, 1);
   }
 }
+
 function draw() {
   background(10, 30, 50);
   let mouse = createVector(mouseX, mouseY);
