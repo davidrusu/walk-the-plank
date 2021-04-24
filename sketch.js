@@ -19,6 +19,7 @@ let multo = p5.Vector.mult;
 let divo = p5.Vector.div;
 
 let pirateIdleSpriteSheet;
+let rockSpriteSheet;
 
 function preload() {
   pirateIdleSpriteSheet = loadSpriteSheet(
@@ -26,6 +27,12 @@ function preload() {
     16,
     24,
     8
+  );
+  rockSpriteSheet = loadSpriteSheet(
+    "assets/rock_spritesheet.png",
+    128,
+    128,
+    64
   );
 }
 
@@ -130,6 +137,7 @@ function updateBubbleSystem() {
 }
 
 let pirateFrame = 0;
+let rockFrame = 0;
 function draw() {
   background(10, 30, 50);
   let mouse = createVector(mouseX, mouseY);
@@ -148,8 +156,19 @@ function draw() {
   if (frameCount % 10 == 0) {
     pirateFrame = (pirateFrame + 1) % 8;
   }
-  // rect(PERSON.pos.x, PERSON.pos.y, PERSON_WIDTH, PERSON_HEIGHT, 10, 10, 10, 10);
+  stroke(60);
+  strokeWeight(4);
+
   line(ball.pos.x, ball.pos.y, pirateLegs.x, pirateLegs.y);
   fill(0);
-  ellipse(ball.pos.x, ball.pos.y, 50, 50);
+  rockSpriteSheet.drawFrame(
+    rockFrame,
+    ball.pos.x - 25,
+    ball.pos.y - 25,
+    50,
+    50
+  );
+  if (frameCount % 5 == 0) {
+    rockFrame = (rockFrame + 1) % 8;
+  }
 }
