@@ -14,8 +14,10 @@ let addo = p5.Vector.add;
 let subo = p5.Vector.sub;
 let multo = p5.Vector.mult;
 let divo = p5.Vector.div;
+
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  var cnv = createCanvas(windowWidth, windowHeight);
+  cnv.style('display', 'block');
   ball = {
     pos: createVector(windowWidth / 2, windowHeight / 2),
     velocity: createVector(0, 0),
