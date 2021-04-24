@@ -5,6 +5,7 @@ let ball;
 let chainLength = 150;
 let PERSON_WIDTH = 30;
 let PERSON_HEIGHT = 70;
+let MAX_ENERGY = 2000
 let ANCHOR_POINT_DELTA;
 let PERSON;
 let AIR = 0.9;
@@ -23,6 +24,7 @@ function setup() {
   PERSON = {
     pos: addo(ball.pos, ANCHOR_POINT_DELTA),
     velocity: createVector(0, 0),
+    energy: MAX_ENERGY
   };
 }
 function updateBallPos(anchor) {
@@ -48,9 +50,21 @@ function updatePerson() {
   dir.mult(0.0001);
   PERSON.velocity.add(dir);
   ball.velocity.add(0, GRAVITY / clampedDt);
+  swimUp(mouseIsPressed)
   PERSON.velocity.mult(lerp(AIR, 1, 0.8));
   PERSON.pos.add(multo(PERSON.velocity, deltaTime));
 }
+
+function swimUp(m) {
+  if (m && PERSON.energy > 0) {
+    PERSON.velocity.add(createVector(0, -0.05));
+    PERSON.energy = max(PERSON.energy - deltaTime, 0);
+  } else {
+    PERSON.energy = min(PERSON.energy + deltaTime * 0.3, MAX_ENERGY);
+  }
+  rect(0,windowHeight-50,windowWidth*PERSON.energy/MAX_ENERGY,20)
+}
+
 let bubbles = [];
 function updateBubbleSystem() {
   let targetNumBubbles = 100;
