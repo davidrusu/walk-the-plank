@@ -3,6 +3,8 @@ let libs = ["https://cdn.jsdelivr.net/npm/p5.collide2d"];
 // https://code-dot-org.github.io/p5.play/docs/classes/SpriteSheet.html
 let ball;
 let chainLength = 150;
+let targetNumBubbles = 100;
+let bubbles = [];
 let outOfEnergyTime=-100000;
 let PERSON_WIDTH = 30;
 let PERSON_HEIGHT = 70;
@@ -28,6 +30,13 @@ function setup() {
     velocity: createVector(0, 0),
     energy: MAX_ENERGY
   };
+  for (var i=0; i < targetNumBubbles;i++){
+    bubbles.push({
+      pos: createVector(random(0, windowWidth), random(0, windowHeight)),
+      velocity: createVector(0, random(-0.1, -0.2)),
+      radius: random(3, 10),
+    });
+  }
 }
 
 function windowResized() {
@@ -77,9 +86,7 @@ function swimUp(m) {
   rect(0,windowHeight-50,windowWidth*PERSON.energy/MAX_ENERGY,20)
 }
 
-let bubbles = [];
 function updateBubbleSystem() {
-  let targetNumBubbles = 100;
   if (bubbles.length < targetNumBubbles && random() < 0.1) {
     bubbles.push({
       pos: createVector(random(0, windowWidth), windowHeight),
