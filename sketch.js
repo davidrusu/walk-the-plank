@@ -7,8 +7,8 @@ let targetNumBubbles = 100;
 let bubbles = [];
 let outOfEnergyTime = -100000;
 let MAX_ENERGY = 2000;
-let PERSON_WIDTH = 32;
-let PERSON_HEIGHT = 48;
+let PERSON_WIDTH = 16 * 3; // multiples of 16
+let PERSON_HEIGHT = 24 * 3; // multiples of 24
 let ANCHOR_POINT_DELTA;
 let PERSON;
 let AIR = 0.9;
@@ -158,8 +158,18 @@ function draw() {
   }
   stroke(60);
   strokeWeight(4);
-
-  line(ball.pos.x, ball.pos.y, pirateLegs.x, pirateLegs.y);
+  noFill();
+  let abovePerson = addo(PERSON.pos, createVector(0, -chainLength));
+  curve(
+    ball.pos.x,
+    ball.pos.y,
+    ball.pos.x,
+    ball.pos.y,
+    pirateLegs.x,
+    pirateLegs.y,
+    abovePerson.x,
+    abovePerson.y
+  );
   fill(0);
   rockSpriteSheet.drawFrame(
     rockFrame,
