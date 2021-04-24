@@ -1,23 +1,40 @@
-let libs = ["https://cdn.jsdelivr.net/npm/p5.collide2d"];
 // SPRITESHEETS
 // https://code-dot-org.github.io/p5.play/docs/classes/SpriteSheet.html
+
+const add = p5.Vector.add;
+const sub = p5.Vector.sub;
+const mult = p5.Vector.mult;
+const div = p5.Vector.div;
+
+const Engine = Matter.Engine;
+const Render = Matter.Render;
+const World = Matter.World;
+const Bodies = Matter.Bodies;
+const Mouse = Matter.Mouse;
+const MouseConstraint = Matter.MouseConstraint;
+const Constraint = Matter.Constraint;
+
+// matter objects
+let engine;
+let chainConstraint;
+let personBody;
+let rockBody;
+
+const AIR = 0.9;
+const CHAIN_LENGTH = 150;
+const GRAVITY = 0.4;
+const MAX_ENERGY = 2000;
+const PERSON_HEIGHT = 24 * 3; // multiples of 24
+const PERSON_WIDTH = 16 * 3; // multiples of 16
+const TARGET_NUM_BUBBLES = 100;
+
+let anchorPointDelta;
 let ball;
-let chainLength = 150;
-let targetNumBubbles = 100;
 let bubbles = [];
+let canvas;
 let outOfEnergyTime = -100000;
-let MAX_ENERGY = 2000;
-let PERSON_WIDTH = 16 * 3; // multiples of 16
-let PERSON_HEIGHT = 24 * 3; // multiples of 24
-let ANCHOR_POINT_DELTA;
-let PERSON;
-let AIR = 0.9;
-let GRAVITY = 0.4;
+let person;
 let swimming = false;
-let addo = p5.Vector.add;
-let subo = p5.Vector.sub;
-let multo = p5.Vector.mult;
-let divo = p5.Vector.div;
 
 let pirateIdleSpriteSheet;
 let pirateSwimSpriteSheets;
@@ -47,19 +64,47 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  matter.init();
+
+  canvas = createCanvas(windowWidth, windowHeight);
+
+  /////////// matter code ///////////
+  engine = Engine.create()
+
+  personBody = Bodies.rectangle(windowWidth/2, 100, PERSON_WIDTH, PERSON_HEIGHT, {inertia:Infinity})
+  rockBody = Bodies.polygon(windowWidth/2, 250, 1, 15)
+  chainConstraint = Constraint.create({
+    bodyA: personBody,
+    pointA: { x: 0, y: PERSON_HEIGHT/2 },
+    bodyB: rockBody,
+    pointB: { x: 0, y: 0 },
+    stiffness: 0.01
+  });
+
+  World.add(engine.world, [personBody, rockBody, chainConstraint])
+
+  const mouse = Mouse.create(canvas.elt);
+  const mouseParams = {
+    mouse: mouse,
+    constraint: { stiffness: 0.05 }
+  }
+  mouseConstraint = MouseConstraint.create(engine, mouseParams);
+  mouseConstraint.mouse.pixelRatio = pixelDensity();
+  World.add(engine.world, mouseConstraint);
+
+  Engine.run(engine);
+  ///////////////////////////////////
+
   ball = {
     pos: createVector(windowWidth / 2, windowHeight / 2),
     velocity: createVector(0, 0),
   };
-  ANCHOR_POINT_DELTA = createVector(PERSON_WIDTH / 2, PERSON_HEIGHT);
-  PERSON = {
-    pos: addo(ball.pos, ANCHOR_POINT_DELTA),
+  anchorPointDelta = createVector(PERSON_WIDTH / 2, PERSON_HEIGHT);
+  person = {
+    pos: add(ball.pos, anchorPointDelta),
     velocity: createVector(0, 0),
     energy: MAX_ENERGY,
   };
-  for (var i = 0; i < targetNumBubbles; i++) {
+  for (var i = 0; i < TARGET_NUM_BUBBLES; i++) {
     bubbles.push({
       pos: createVector(random(0, windowWidth), random(0, windowHeight)),
       velocity: createVector(0, random(-0.1, -0.2)),
@@ -75,16 +120,16 @@ function windowResized() {
 function updateBallPos(anchor) {
   let clampedDt = max(deltaTime, 1.0);
   oldPosition = ball.pos;
-  desiredBallPos = addo(ball.pos, multo(ball.velocity, deltaTime));
-  dir = subo(desiredBallPos, anchor.pos);
-  if (dir.mag() > chainLength) {
+  desiredBallPos = add(ball.pos, mult(ball.velocity, deltaTime));
+  dir = sub(desiredBallPos, anchor.pos);
+  if (dir.mag() > CHAIN_LENGTH) {
     // pull pirate in direction of chain
-    ball.pos = addo(anchor.pos, multo(dir.normalize(), chainLength));
-    PERSON.velocity.add(multo(dir, 0.05));
+    ball.pos = add(anchor.pos, mult(dir.normalize(), CHAIN_LENGTH));
+    person.velocity.add(mult(dir, 0.05));
   } else {
     ball.pos = desiredBallPos;
   }
-  ball.velocity = multo(subo(ball.pos, oldPosition), 1.0 / clampedDt);
+  ball.velocity = mult(sub(ball.pos, oldPosition), 1.0 / clampedDt);
   ball.velocity.mult(AIR);
   ball.velocity.add(0, GRAVITY / clampedDt);
 }
@@ -92,31 +137,31 @@ function updateBallPos(anchor) {
 function updatePerson() {
   let clampedDt = max(deltaTime, 1.0);
   let mouse = createVector(mouseX, mouseY);
-  let dir = subo(mouse, PERSON.pos).normalize();
+  let dir = sub(mouse, person.pos).normalize();
   dir.mult(0.03);
-  PERSON.velocity.add(dir);
+  person.velocity.add(dir);
   ball.velocity.add(0, GRAVITY / clampedDt);
   swimUp(mouseIsPressed);
-  PERSON.velocity.mult(lerp(AIR, 1, 0.8));
-  PERSON.pos.add(multo(PERSON.velocity, deltaTime));
+  person.velocity.mult(lerp(AIR, 1, 0.8));
+  person.pos.add(mult(person.velocity, deltaTime));
 }
 
 function swimUp(m) {
   pauseIsOver = millis() - outOfEnergyTime > 1000;
-  if (m && PERSON.energy > 0 && pauseIsOver) {
-    PERSON.velocity.add(createVector(0, -0.05));
-    PERSON.energy = max(PERSON.energy - deltaTime, 0);
+  if (m && person.energy > 0 && pauseIsOver) {
+    person.velocity.add(createVector(0, -0.05));
+    person.energy = max(person.energy - deltaTime, 0);
     swimming = true;
-    if (PERSON.energy == 0) {
+    if (person.energy == 0) {
       outOfEnergyTime = millis();
     }
   } else {
     swimming = false;
     if (pauseIsOver) {
-      PERSON.energy = min(PERSON.energy + deltaTime * 0.3, MAX_ENERGY);
+      person.energy = min(person.energy + deltaTime * 0.3, MAX_ENERGY);
     }
   }
-  rect(0, windowHeight - 50, (windowWidth * PERSON.energy) / MAX_ENERGY, 20);
+  rect(0, windowHeight - 50, (windowWidth * person.energy) / MAX_ENERGY, 20);
 }
 
 function updateBubbleSystem() {
@@ -131,10 +176,10 @@ function updateBubbleSystem() {
   let noiseTime = millis() * 0.0001;
   let noiseScale = 0.1;
   if (random() < (swimming ? 0.5 : 0.1)) {
-    let pos = addo(PERSON.pos, createVector(PERSON_WIDTH / 2, 10));
+    let pos = add(person.pos, createVector(PERSON_WIDTH / 2, 10));
     bubbles.push({
       pos: pos,
-      velocity: multo(
+      velocity: mult(
         createVector(
           noise(pos.x * noiseScale, noiseTime) - 0.5,
           noise(pos.y * noiseScale, noiseTime) - 0.5
@@ -151,7 +196,7 @@ function updateBubbleSystem() {
     fill(255, 50);
     stroke(255, 80);
     circle(bubble.pos.x, bubble.pos.y, bubble.radius);
-    bubble.pos.add(multo(bubble.velocity, deltaTime));
+    bubble.pos.add(mult(bubble.velocity, deltaTime));
     let randomness = createVector(
       noise(bubble.pos.x * noiseScale, noiseTime) - 0.5,
       noise(bubble.pos.y * noiseScale, noiseTime) - 0.5
@@ -169,13 +214,13 @@ function updateBubbleSystem() {
         random(-offsetR, offsetR),
         random(-offsetR, offsetR)
       );
-      let pos1 = addo(bubble.pos, offset);
+      let pos1 = add(bubble.pos, offset);
       let r1 = random(0, bubble.radius);
       bubbles.push({
         pos: pos1,
-        velocity: addo(
+        velocity: add(
           bubble.velocity,
-          multo(
+          mult(
             createVector(
               noise(pos1.x * noiseScale, noiseTime) - 0.5,
               noise(pos1.y * noiseScale, noiseTime) - 0.5
@@ -185,12 +230,12 @@ function updateBubbleSystem() {
         ),
         radius: r1,
       });
-      let pos2 = subo(bubble.pos, offset);
+      let pos2 = sub(bubble.pos, offset);
       bubbles.push({
         pos: pos2,
-        velocity: addo(
+        velocity: add(
           bubble.velocity,
-          multo(
+          mult(
             createVector(
               noise(pos2.x * noiseScale, noiseTime) - 0.5,
               noise(pos2.y * noiseScale, noiseTime) - 0.5
@@ -214,7 +259,7 @@ let pirateSwimFrame = 0;
 function draw() {
   background(10, 30, 50);
   let mouse = createVector(mouseX, mouseY);
-  let pirateLegs = addo(PERSON.pos, ANCHOR_POINT_DELTA);
+  let pirateLegs = add(person.pos, anchorPointDelta);
   updateBallPos({ pos: pirateLegs });
   updatePerson();
   updateBubbleSystem();
@@ -230,15 +275,15 @@ function draw() {
   }
   pirateSpriteSheet.drawFrame(
     pirateFrame,
-    PERSON.pos.x,
-    PERSON.pos.y,
+    person.pos.x,
+    person.pos.y,
     PERSON_WIDTH,
     PERSON_HEIGHT
   );
   stroke(60);
   strokeWeight(4);
   noFill();
-  let abovePerson = addo(PERSON.pos, createVector(0, -chainLength));
+  let abovePerson = add(person.pos, createVector(0, -CHAIN_LENGTH));
   curve(
     ball.pos.x,
     ball.pos.y,
@@ -260,4 +305,40 @@ function draw() {
   if (frameCount % 5 == 0) {
     rockFrame = (rockFrame + 1) % 8;
   }
+
+  // draw matter stuff
+  stroke(255);
+  fill(255);
+  drawVertices(personBody.vertices)
+  drawVertices(rockBody.vertices)
+  stroke(128);
+  strokeWeight(2);
+  drawConstraint(chainConstraint)
+}
+
+function drawConstraint(constraint) {
+  const offsetA = constraint.pointA;
+  let posA = {x:0, y:0};
+  if (constraint.bodyA) {
+    posA = constraint.bodyA.position;
+  }
+  const offsetB = constraint.pointB;
+  let posB = {x:0, y:0};
+  if (constraint.bodyB) {
+    posB = constraint.bodyB.position;
+  }
+  line(
+    posA.x + offsetA.x,
+    posA.y + offsetA.y,
+    posB.x + offsetB.x,
+    posB.y + offsetB.y
+  );
+}
+
+function drawVertices(vertices) {
+  beginShape();
+  for (let i = 0; i < vertices.length; i++) {
+    vertex(vertices[i].x, vertices[i].y);
+  }
+  endShape(CLOSE);
 }
