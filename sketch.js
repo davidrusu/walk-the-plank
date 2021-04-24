@@ -13,12 +13,14 @@ let ANCHOR_POINT_DELTA;
 let PERSON;
 let AIR = 0.9;
 let GRAVITY = 0.4;
+let swimming = false;
 let addo = p5.Vector.add;
 let subo = p5.Vector.sub;
 let multo = p5.Vector.mult;
 let divo = p5.Vector.div;
 
 let pirateIdleSpriteSheet;
+let pirateSwimSpriteSheets;
 let rockSpriteSheet;
 
 function preload() {
@@ -28,6 +30,14 @@ function preload() {
     24,
     8
   );
+
+  pirateSwimSpriteSheets = [
+    loadSpriteSheet("assets/pirate_swim_1_spritesheet.png", 16, 24, 8),
+    loadSpriteSheet("assets/pirate_swim_2_spritesheet.png", 16, 24, 8),
+    loadSpriteSheet("assets/pirate_swim_3_spritesheet.png", 16, 24, 8),
+    loadSpriteSheet("assets/pirate_swim_4_spritesheet.png", 16, 24, 8),
+  ];
+
   rockSpriteSheet = loadSpriteSheet(
     "assets/rock_spritesheet.png",
     128,
@@ -96,11 +106,15 @@ function swimUp(m) {
   if (m && PERSON.energy > 0 && pauseIsOver) {
     PERSON.velocity.add(createVector(0, -0.05));
     PERSON.energy = max(PERSON.energy - deltaTime, 0);
+    swimming = true;
     if (PERSON.energy == 0) {
       outOfEnergyTime = millis();
     }
-  } else if (pauseIsOver) {
-    PERSON.energy = min(PERSON.energy + deltaTime * 0.3, MAX_ENERGY);
+  } else {
+    swimming = false;
+    if (pauseIsOver) {
+      PERSON.energy = min(PERSON.energy + deltaTime * 0.3, MAX_ENERGY);
+    }
   }
   rect(0, windowHeight - 50, (windowWidth * PERSON.energy) / MAX_ENERGY, 20);
 }
@@ -138,6 +152,7 @@ function updateBubbleSystem() {
 }
 
 let rockFrame = 0;
+let pirateSwimFrame = 0;
 function draw() {
   background(10, 30, 50);
   let mouse = createVector(mouseX, mouseY);
@@ -146,8 +161,16 @@ function draw() {
   updatePerson();
   updateBubbleSystem();
   fill(255);
+
   let pirateFrame = floor((mouseX / windowWidth) * 8);
-  pirateIdleSpriteSheet.drawFrame(
+  let pirateSpriteSheet = pirateIdleSpriteSheet;
+  if (swimming) {
+    if (frameCount % 10 == 0) {
+      pirateSwimFrame = (pirateSwimFrame + 1) % pirateSwimSpriteSheets.length;
+    }
+    pirateSpriteSheet = pirateSwimSpriteSheets[pirateSwimFrame];
+  }
+  pirateSpriteSheet.drawFrame(
     pirateFrame,
     PERSON.pos.x,
     PERSON.pos.y,
