@@ -16,6 +16,7 @@ const Mouse = Matter.Mouse;
 const MouseConstraint = Matter.MouseConstraint;
 const Render = Matter.Render;
 const World = Matter.World;
+const Vector = Matter.Vector;
 
 // matter objects
 let engine;
@@ -81,20 +82,15 @@ function setup() {
     PERSON_HEIGHT,
     { inertia: Infinity }
   );
-  var chain = Composites.stack(
-    windowWidth / 2,
-    100,
-    3,
-    1,
-    10,
-    10,
-    function (x, y) {
-      console.log(x, y);
-      return Bodies.rectangle(x, y, 15, 3, {
-        collisionFilter: { group: group },
-      });
-    }
-  );
+  var chain = Composites.stack(windowWidth / 2, 100, 3, 1, 10, 10, function (
+    x,
+    y
+  ) {
+    console.log(x, y);
+    return Bodies.rectangle(x, y, 15, 3, {
+      collisionFilter: { group: group },
+    });
+  });
   Composites.chain(chain, 0.3, 0, -0.3, 0, { stiffness: 1, length: 0 });
   Composite.add(
     chain,
@@ -125,7 +121,7 @@ function setup() {
   World.add(engine.world, mouseConstraint);
 
   for (var i = 0; i < 10; i++) {
-    spawnJellyFish(random(windowWidth), random(windowHeight));
+    spawnJelly(random(windowWidth), random(windowHeight));
   }
   Engine.run(engine);
   ///////////////////////////////////
@@ -150,11 +146,10 @@ function setup() {
 }
 
 let jellies = [];
-function spawnJellyFish(x, y) {
+function spawnJelly(x, y) {
   let width = 40;
   let head = Bodies.trapezoid(x, y, width, 10, PI / 6);
-  let jelly = Composite.create();
-  Composite.add(jelly, head);
+  Composite.add(engine.world, head);
 
   let tentacles = [];
   let N = 3;
@@ -163,24 +158,19 @@ function spawnJellyFish(x, y) {
     var group = Body.nextGroup(true);
     let joinX = (p - 0.5) * width * 0.5;
     let joinY = 0;
-    let tentacle = Composites.stack(
-      x + joinX,
-      y + joinY,
-      1,
-      8,
-      0,
-      0,
-      function (x, y) {
-        return Bodies.rectangle(x, y, 5, 2, {});
-      }
-    );
+    let tentacle = Composites.stack(x + joinX, y + joinY, 1, 8, 0, 0, function (
+      x,
+      y
+    ) {
+      return Bodies.rectangle(x, y, 5, 2, {});
+    });
     Composites.chain(tentacle, 0.5, 0, -0.5, 0, {
       stiffness: 0.8,
       length: 2,
     });
-    Composite.add(jelly, tentacle);
+    Composite.add(engine.world, tentacle);
     Composite.add(
-      jelly,
+      engine.world,
       Constraint.create({
         bodyA: head,
         bodyB: tentacle.bodies[0],
@@ -191,13 +181,24 @@ function spawnJellyFish(x, y) {
     tentacles.push(tentacle);
   }
 
-  jellies.push([jelly, tentacles]);
-  Composite.add(engine.world, jelly);
+  jellies.push([head, tentacles]);
 }
 
-function drawJellyFish() {
-  jellies.forEach(([j, ts]) => {
-    j.bodies.forEach((b) => drawVerticies(b.vertices));
+function updateJellySystem() {
+  jellies.forEach(([h, ts]) => {
+    if (random() < 0.01) {
+      Body.applyForce(
+        h,
+        h.position,
+        Vector.rotate(Vector.create(0, -0.001), h.angle)
+      );
+    }
+  });
+}
+
+function drawJellySystem() {
+  jellies.forEach(([h, ts]) => {
+    drawVerticies(h.vertices);
     ts.forEach((t) => t.bodies.forEach((b) => drawVerticies(b.vertices)));
   });
 }
@@ -352,6 +353,7 @@ function draw() {
   updateBallPos({ pos: pirateLegs });
   updatePerson();
   updateBubbleSystem();
+  updateJellySystem();
   fill(255);
 
   let pirateFrame = floor(min(mouseX / windowWidth, 1) * 7);
@@ -402,7 +404,8 @@ function draw() {
   drawVerticies(rockBody.vertices);
   stroke(128);
   strokeWeight(2);
-  drawJellyFish();
+  drawConstraint(chainConstraint);
+  drawJellySystem();
 }
 
 function drawConstraint(constraint) {
