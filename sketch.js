@@ -148,8 +148,8 @@ function updateBubbleSystem() {
   let toRemove = [];
   for (var i = 0; i < bubbles.length; i++) {
     let bubble = bubbles[i];
-    fill(255, 255, 255, noise(i) * 255);
-    stroke(255);
+    fill(255, 50);
+    stroke(255, 80);
     circle(bubble.pos.x, bubble.pos.y, bubble.radius);
     bubble.pos.add(multo(bubble.velocity, deltaTime));
     let randomness = createVector(
@@ -159,9 +159,47 @@ function updateBubbleSystem() {
     randomness.mult(0.01);
     bubble.velocity.add(randomness);
     bubble.velocity.add(0, -0.005);
-    bubble.velocity.mult(lerp(AIR, 1, 0.8));
+    bubble.velocity.y *= lerp(AIR, 1, 0.8);
     if (bubble.pos.y < 0) {
       toRemove.push(i);
+    } else if (random() < 0.001 * bubble.radius && bubble.radius > 5) {
+      toRemove.push(i);
+      let offsetR = 3;
+      let offset = createVector(
+        random(-offsetR, offsetR),
+        random(-offsetR, offsetR)
+      );
+      let pos1 = addo(bubble.pos, offset);
+      let r1 = random(0, bubble.radius);
+      bubbles.push({
+        pos: pos1,
+        velocity: addo(
+          bubble.velocity,
+          multo(
+            createVector(
+              noise(pos1.x * noiseScale, noiseTime) - 0.5,
+              noise(pos1.y * noiseScale, noiseTime) - 0.5
+            ),
+            0.5
+          )
+        ),
+        radius: r1,
+      });
+      let pos2 = subo(bubble.pos, offset);
+      bubbles.push({
+        pos: pos2,
+        velocity: addo(
+          bubble.velocity,
+          multo(
+            createVector(
+              noise(pos2.x * noiseScale, noiseTime) - 0.5,
+              noise(pos2.y * noiseScale, noiseTime) - 0.5
+            ),
+            -0.5
+          )
+        ),
+        radius: r1,
+      });
     }
   }
 
