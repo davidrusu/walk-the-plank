@@ -25,8 +25,8 @@ const AIR = 0.9;
 const CHAIN_LENGTH = 150;
 const GRAVITY = 0.4;
 const MAX_ENERGY = 2000;
-const PERSON_HEIGHT = 24 * 3; // multiples of 24
-const PERSON_WIDTH = 16 * 3; // multiples of 16
+const PERSON_HEIGHT = 24 * 1.5; // multiples of 24
+const PERSON_WIDTH = 16 * 1.5; // multiples of 16
 const ROCK_RADIUS = 15;
 const TARGET_NUM_BUBBLES = 100;
 
@@ -43,12 +43,12 @@ let pirateSwimSpriteSheets;
 let rockSpriteSheet;
 
 function preload() {
-  pirateIdleSpriteSheet = loadSpriteSheet(
-    "assets/pirate_idle_spritesheet.png",
-    16,
-    24,
-    8
-  );
+  pirateIdleSpriteSheets = [
+    loadSpriteSheet("assets/pirate_idle_1_spritesheet.png", 16, 24, 8),
+    loadSpriteSheet("assets/pirate_idle_2_spritesheet.png", 16, 24, 8),
+    loadSpriteSheet("assets/pirate_idle_3_spritesheet.png", 16, 24, 8),
+    loadSpriteSheet("assets/pirate_idle_4_spritesheet.png", 16, 24, 8),
+  ];
 
   pirateSwimSpriteSheets = [
     loadSpriteSheet("assets/pirate_swim_1_spritesheet.png", 16, 24, 8),
@@ -167,21 +167,23 @@ function spawnPirate(x, y) {
 
 let rockFrame = 0;
 let pirateSwimFrame = 0;
+let pirateIdleFrame = 0;
 function drawPirate() {
   let pirateFrame = floor(min(mouseX / windowWidth, 1) * 7);
-  let pirateSpriteSheet = pirateIdleSpriteSheet;
+  if (frameCount % 10 == 0) {
+    pirateSwimFrame = (pirateSwimFrame + 1) % pirateSwimSpriteSheets.length;
+    pirateIdleFrame = (pirateIdleFrame + 1) % pirateIdleSpriteSheets.length;
+  }
+  let pirateSpriteSheet = pirateIdleSpriteSheets[pirateIdleFrame];
   if (swimming) {
-    if (frameCount % 10 == 0) {
-      pirateSwimFrame = (pirateSwimFrame + 1) % pirateSwimSpriteSheets.length;
-    }
     pirateSpriteSheet = pirateSwimSpriteSheets[pirateSwimFrame];
   }
   pirateSpriteSheet.drawFrame(
     pirateFrame,
-    person.body.position.x - PERSON_WIDTH / 2,
-    person.body.position.y - PERSON_HEIGHT / 2,
-    PERSON_WIDTH,
-    PERSON_HEIGHT
+    person.body.position.x - PERSON_WIDTH,
+    person.body.position.y - PERSON_HEIGHT,
+    PERSON_WIDTH * 2,
+    PERSON_HEIGHT * 2
   );
   fill(60);
   noStroke();
@@ -422,7 +424,8 @@ function draw() {
   fill(255);
 
   let pirateFrame = floor(min(mouseX / windowWidth, 1) * 7);
-  let pirateSpriteSheet = pirateIdleSpriteSheet;
+
+  let pirateSpriteSheet = pirateIdleSpriteSheets[pirateIdleFrame];
   if (swimming) {
     if (frameCount % 10 == 0) {
       pirateSwimFrame = (pirateSwimFrame + 1) % pirateSwimSpriteSheets.length;
