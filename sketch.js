@@ -24,9 +24,6 @@ const norm = Vector.normalise;
 const mag = Vector.magnitude;
 const rotateVec = Vector.rotate;
 
-// matter objects
-let engine;
-
 const AIR = 0.9;
 const CHAIN_LENGTH = 150;
 const GRAVITY = 0.4;
@@ -36,8 +33,7 @@ const PERSON_WIDTH = 16 * 1.5; // multiples of 16
 const ROCK_RADIUS = 10;
 const TARGET_NUM_BUBBLES = 100;
 
-let anchorPointDelta;
-let ball;
+let engine;
 let bubbles = [];
 let canvas;
 let outOfEnergyTime = -100000;
@@ -80,7 +76,6 @@ function preload() {
 function setup() {
   canvas = createCanvas(windowWidth, windowHeight);
 
-  /////////// matter code ///////////
   engine = Engine.create();
   engine.gravity.y = 0.05;
 
@@ -99,13 +94,6 @@ function setup() {
     spawnJelly(random(windowWidth), random(windowHeight));
   }
   Engine.run(engine);
-  ///////////////////////////////////
-
-  ball = {
-    pos: vec(windowWidth / 2, windowHeight / 2),
-    velocity: vec(0, 0),
-  };
-  anchorPointDelta = vec(PERSON_WIDTH / 2, PERSON_HEIGHT);
 
   for (var i = 0; i < TARGET_NUM_BUBBLES; i++) {
     bubbles.push({
@@ -115,6 +103,7 @@ function setup() {
     });
   }
   maxOxygen = oxygen = random(2, 4) * 1000 * 60;
+  console.log(`${(maxOxygen / 60000).toFixed(2)} minutes of oxygen this game`);
 }
 
 function spawnPirate(x, y) {
