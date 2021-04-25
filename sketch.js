@@ -1,10 +1,6 @@
 // SPRITESHEETS
 // https://code-dot-org.github.io/p5.play/docs/classes/SpriteSheet.html
 const debug = false;
-const add = p5.Vector.add;
-const sub = p5.Vector.sub;
-const mult = p5.Vector.mult;
-const div = p5.Vector.div;
 
 const Bodies = Matter.Bodies;
 const Body = Matter.Body;
@@ -17,6 +13,15 @@ const MouseConstraint = Matter.MouseConstraint;
 const Render = Matter.Render;
 const World = Matter.World;
 const Vector = Matter.Vector;
+
+const vec = Vector.create;
+const add = Vector.add;
+const sub = Vector.sub;
+const mult = Vector.mult;
+const div = Vector.div;
+const norm = Vector.normalise;
+const mag = Vector.magnitude;
+const rotate = Vector.rotate;
 
 // matter objects
 let engine;
@@ -42,7 +47,7 @@ let pirateIdleSpriteSheet;
 let pirateSwimSpriteSheets;
 let rockSpriteSheet;
 
-let rad2vec = (rad) => Vector.create(cos(rad), sin(rad));
+let rad2vec = (rad) => vec(cos(rad), sin(rad));
 let noiseVec = (x, y, t) => rad2vec(noise(x, y, t) * PI * 2);
 
 function preload() {
@@ -93,18 +98,18 @@ function setup() {
   ///////////////////////////////////
 
   ball = {
-    pos: createVector(windowWidth / 2, windowHeight / 2),
-    velocity: createVector(0, 0),
+    pos: vec(windowWidth / 2, windowHeight / 2),
+    velocity: vec(0, 0),
   };
-  anchorPointDelta = createVector(PERSON_WIDTH / 2, PERSON_HEIGHT);
+  anchorPointDelta = vec(PERSON_WIDTH / 2, PERSON_HEIGHT);
   person.pos = add(ball.pos, anchorPointDelta);
-  person.velocity = createVector(0, 0);
+  person.velocity = vec(0, 0);
   person.energy = MAX_ENERGY;
 
   for (var i = 0; i < TARGET_NUM_BUBBLES; i++) {
     bubbles.push({
-      pos: createVector(random(0, windowWidth), random(0, windowHeight)),
-      velocity: createVector(0, random(-0.1, -0.2)),
+      pos: vec(random(0, windowWidth), random(0, windowHeight)),
+      velocity: vec(0, random(-0.1, -0.2)),
       radius: random(3, 10),
     });
   }
@@ -276,11 +281,7 @@ function spawnJelly(x, y) {
 function updateJellySystem() {
   jellies.forEach(([h, ts]) => {
     if (random() < 0.01) {
-      Body.applyForce(
-        h,
-        h.position,
-        Vector.rotate(Vector.create(0, -0.001), h.angle)
-      );
+      Body.applyForce(h, h.position, rotate(vec(0, -0.001), h.angle));
     }
   });
 }
@@ -303,28 +304,27 @@ function updateBallPos(anchor) {
   oldPosition = ball.pos;
   desiredBallPos = add(ball.pos, mult(ball.velocity, deltaTime));
   dir = sub(desiredBallPos, anchor.pos);
-  if (dir.mag() > CHAIN_LENGTH) {
+  if (mag(dir) > CHAIN_LENGTH) {
     // pull pirate in direction of chain
-    ball.pos = add(anchor.pos, mult(dir.normalize(), CHAIN_LENGTH));
-    person.velocity.add(mult(dir, 0.05));
+    ball.pos = add(anchor.pos, mult(norm(dir), CHAIN_LENGTH));
+    person.velocity = add(person.velocity, mult(dir, 0.05));
   } else {
     ball.pos = desiredBallPos;
   }
   ball.velocity = mult(sub(ball.pos, oldPosition), 1.0 / clampedDt);
-  ball.velocity.mult(AIR);
-  ball.velocity.add(0, GRAVITY / clampedDt);
+  ball.velocity = mult(ball.velocity, AIR);
+  ball.velocity = add(ball.velocity, vec(0, GRAVITY / clampedDt));
 }
 
 function updatePerson() {
   let clampedDt = max(deltaTime, 1.0);
-  let mouse = createVector(mouseX, mouseY);
-  let dir = sub(mouse, person.pos).normalize();
-  dir.mult(0.03);
-  person.velocity.add(dir);
-  ball.velocity.add(0, GRAVITY / clampedDt);
+  let mouse = vec(mouseX, mouseY);
+  let dir = mult(norm(sub(mouse, person.pos)), 0.03);
+  person.velocity = add(person.velocity, dir);
+  ball.velocity = add(ball.velocity, vec(0, GRAVITY / clampedDt));
   swimUp(mouseIsPressed);
-  person.velocity.mult(lerp(AIR, 1, 0.8));
-  person.pos.add(mult(person.velocity, deltaTime));
+  person.velocity = mult(person.velocity, lerp(AIR, 1, 0.8));
+  person.pos = add(person.pos, mult(person.velocity, deltaTime));
 }
 
 function swimUp(m) {
@@ -333,9 +333,9 @@ function swimUp(m) {
     Body.applyForce(
       person.body,
       person.body.position,
-      Vector.rotate(Vector.create(0, -0.0004), person.body.angle)
+      rotate(vec(0, -0.0004), person.body.angle)
     );
-    person.velocity.add(createVector(0, -0.05));
+    person.velocity = add(person.velocity, vec(0, -0.05));
     person.energy = max(person.energy - deltaTime, 0);
     swimming = true;
     if (person.energy == 0) {
@@ -353,8 +353,8 @@ function swimUp(m) {
 function updateBubbleSystem() {
   if (random() < 0.05) {
     bubbles.push({
-      pos: createVector(random(0, windowWidth), windowHeight),
-      velocity: createVector(0, random(-0.1, -0.2)),
+      pos: vec(random(0, windowWidth), windowHeight),
+      velocity: vec(0, random(-0.1, -0.2)),
       radius: random(3, 10),
     });
   }
@@ -363,13 +363,13 @@ function updateBubbleSystem() {
   let noiseScale = 0.1;
   if (random() < (swimming ? 0.5 : 0.1)) {
     let pos = add(
-      createVector(person.body.position.x, person.body.position.y),
-      createVector(0, -PERSON_HEIGHT * 0.25)
+      vec(person.body.position.x, person.body.position.y),
+      vec(0, -PERSON_HEIGHT * 0.25)
     );
     bubbles.push({
       pos: pos,
       velocity: mult(
-        createVector(
+        vec(
           noise(pos.x * noiseScale, noiseTime) - 0.5,
           noise(pos.y * noiseScale, noiseTime) - 0.5
         ),
@@ -382,24 +382,23 @@ function updateBubbleSystem() {
   let toRemove = [];
   for (var i = 0; i < bubbles.length; i++) {
     let bubble = bubbles[i];
-    bubble.pos.add(mult(bubble.velocity, deltaTime));
-    let randomness = createVector(
-      noise(bubble.pos.x * noiseScale, noiseTime) - 0.5,
-      noise(bubble.pos.y * noiseScale, noiseTime) - 0.5
+    bubble.pos = add(bubble.pos, mult(bubble.velocity, deltaTime));
+    let randomness = mult(
+      vec(
+        noise(bubble.pos.x * noiseScale, noiseTime) - 0.5,
+        noise(bubble.pos.y * noiseScale, noiseTime) - 0.5
+      ),
+      0.01
     );
-    randomness.mult(0.01);
-    bubble.velocity.add(randomness);
-    bubble.velocity.add(0, -0.005);
+    bubble.velocity = add(bubble.velocity, randomness);
+    bubble.velocity = add(bubble.velocity, vec(0, -0.005));
     bubble.velocity.y *= lerp(AIR, 1, 0.8);
     if (bubble.pos.y < 0) {
       toRemove.push(i);
     } else if (random() < 0.001 * bubble.radius && bubble.radius > 5) {
       toRemove.push(i);
       let offsetR = 3;
-      let offset = createVector(
-        random(-offsetR, offsetR),
-        random(-offsetR, offsetR)
-      );
+      let offset = vec(random(-offsetR, offsetR), random(-offsetR, offsetR));
       let pos1 = add(bubble.pos, offset);
       let r1 = random(0, bubble.radius);
       bubbles.push({
@@ -407,7 +406,7 @@ function updateBubbleSystem() {
         velocity: add(
           bubble.velocity,
           mult(
-            createVector(
+            vec(
               noise(pos1.x * noiseScale, noiseTime) - 0.5,
               noise(pos1.y * noiseScale, noiseTime) - 0.5
             ),
@@ -422,7 +421,7 @@ function updateBubbleSystem() {
         velocity: add(
           bubble.velocity,
           mult(
-            createVector(
+            vec(
               noise(pos2.x * noiseScale, noiseTime) - 0.5,
               noise(pos2.y * noiseScale, noiseTime) - 0.5
             ),
@@ -451,7 +450,7 @@ function drawBubbleSystem() {
 
 function draw() {
   background(10, 30, 50);
-  let mouse = createVector(mouseX, mouseY);
+  let mouse = vec(mouseX, mouseY);
   let pirateLegs = add(person.pos, anchorPointDelta);
   updateBallPos({ pos: pirateLegs });
   updatePerson();
@@ -478,7 +477,7 @@ function draw() {
   stroke(60);
   strokeWeight(4);
   noFill();
-  let abovePerson = add(person.pos, createVector(0, -CHAIN_LENGTH));
+  let abovePerson = add(person.pos, vec(0, -CHAIN_LENGTH));
   curve(
     ball.pos.x,
     ball.pos.y,
