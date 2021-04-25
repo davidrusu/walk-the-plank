@@ -42,6 +42,9 @@ let pirateIdleSpriteSheet;
 let pirateSwimSpriteSheets;
 let rockSpriteSheet;
 
+let rad2vec = (rad) => Vector.create(cos(rad), sin(rad));
+let noiseVec = (x, y, t) => rad2vec(noise(x, y, t) * PI * 2);
+
 function preload() {
   pirateIdleSpriteSheets = [
     loadSpriteSheet("assets/pirate_idle_1_spritesheet.png", 16, 24, 8),
@@ -361,7 +364,7 @@ function updateBubbleSystem() {
   if (random() < (swimming ? 0.5 : 0.1)) {
     let pos = add(
       createVector(person.body.position.x, person.body.position.y),
-      createVector(PERSON_WIDTH / 2, 10)
+      createVector(0, -PERSON_HEIGHT * 0.25)
     );
     bubbles.push({
       pos: pos,
@@ -379,9 +382,6 @@ function updateBubbleSystem() {
   let toRemove = [];
   for (var i = 0; i < bubbles.length; i++) {
     let bubble = bubbles[i];
-    fill(255, 50);
-    stroke(255, 80);
-    circle(bubble.pos.x, bubble.pos.y, bubble.radius);
     bubble.pos.add(mult(bubble.velocity, deltaTime));
     let randomness = createVector(
       noise(bubble.pos.x * noiseScale, noiseTime) - 0.5,
@@ -437,6 +437,15 @@ function updateBubbleSystem() {
   toRemove.reverse();
   for (var i of toRemove) {
     bubbles.splice(i, 1);
+  }
+}
+
+function drawBubbleSystem() {
+  for (var i = 0; i < bubbles.length; i++) {
+    let bubble = bubbles[i];
+    fill(255, 50);
+    stroke(255, 80);
+    circle(bubble.pos.x, bubble.pos.y, bubble.radius);
   }
 }
 
@@ -497,6 +506,7 @@ function draw() {
   strokeWeight(2);
   drawJellySystem();
   drawPirate();
+  drawBubbleSystem();
 }
 
 function drawConstraint(constraint) {
