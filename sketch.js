@@ -102,8 +102,6 @@ function setup() {
     velocity: vec(0, 0),
   };
   anchorPointDelta = vec(PERSON_WIDTH / 2, PERSON_HEIGHT);
-  person.pos = add(ball.pos, anchorPointDelta);
-  person.velocity = vec(0, 0);
   person.energy = MAX_ENERGY;
 
   for (var i = 0; i < TARGET_NUM_BUBBLES; i++) {
@@ -124,20 +122,14 @@ function spawnPirate(x, y) {
     frictionAir: 0.03,
   });
 
+  let chainX = person.body.position.x;
+  let chainY = person.body.position.y + PERSON_HEIGHT / 2;
   let chainLinkLength = 10;
-  person.chain = Composites.stack(
-    person.body.position.x,
-    person.body.position.y + PERSON_HEIGHT / 2,
-    8,
-    1,
-    0,
-    0,
-    function (x, y) {
-      return Bodies.rectangle(x, y, chainLinkLength, 3, {
-        collisionFilter: { group: group },
-      });
-    }
-  );
+  person.chain = Composites.stack(chainX, chainY, 8, 1, 0, 0, function (x, y) {
+    return Bodies.rectangle(x, y, chainLinkLength, 3, {
+      collisionFilter: { group: group },
+    });
+  });
   Composites.chain(person.chain, 0.5, 0, -0.5, 0, {
     stiffness: 1,
     length: 0,
@@ -156,7 +148,8 @@ function spawnPirate(x, y) {
   person.rock = Bodies.circle(
     lastChainBody.position.x,
     lastChainBody.position.y,
-    ROCK_RADIUS
+    ROCK_RADIUS,
+    { mass: 1.5 }
   );
 
   World.add(engine.world, [
@@ -299,32 +292,13 @@ function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
 
-function updateBallPos(anchor) {
-  let clampedDt = max(deltaTime, 1.0);
-  oldPosition = ball.pos;
-  desiredBallPos = add(ball.pos, mult(ball.velocity, deltaTime));
-  dir = sub(desiredBallPos, anchor.pos);
-  if (mag(dir) > CHAIN_LENGTH) {
-    // pull pirate in direction of chain
-    ball.pos = add(anchor.pos, mult(norm(dir), CHAIN_LENGTH));
-    person.velocity = add(person.velocity, mult(dir, 0.05));
-  } else {
-    ball.pos = desiredBallPos;
-  }
-  ball.velocity = mult(sub(ball.pos, oldPosition), 1.0 / clampedDt);
-  ball.velocity = mult(ball.velocity, AIR);
-  ball.velocity = add(ball.velocity, vec(0, GRAVITY / clampedDt));
-}
-
-function updatePerson() {
+function updatePirate() {
   let clampedDt = max(deltaTime, 1.0);
   let mouse = vec(mouseX, mouseY);
-  let dir = mult(norm(sub(mouse, person.pos)), 0.03);
-  person.velocity = add(person.velocity, dir);
-  ball.velocity = add(ball.velocity, vec(0, GRAVITY / clampedDt));
+  let forceVec = mult(norm(sub(mouse, person.body.position)), 0.0003);
+  forceVec.y = 0;
+  Body.applyForce(person.body, person.body.position, forceVec);
   swimUp(mouseIsPressed);
-  person.velocity = mult(person.velocity, lerp(AIR, 1, 0.8));
-  person.pos = add(person.pos, mult(person.velocity, deltaTime));
 }
 
 function swimUp(m) {
@@ -335,7 +309,6 @@ function swimUp(m) {
       person.body.position,
       rotate(vec(0, -0.0004), person.body.angle)
     );
-    person.velocity = add(person.velocity, vec(0, -0.05));
     person.energy = max(person.energy - deltaTime, 0);
     swimming = true;
     if (person.energy == 0) {
@@ -362,10 +335,7 @@ function updateBubbleSystem() {
   let noiseTime = millis() * 0.0001;
   let noiseScale = 0.1;
   if (random() < (swimming ? 0.5 : 0.1)) {
-    let pos = add(
-      vec(person.body.position.x, person.body.position.y),
-      vec(0, -PERSON_HEIGHT * 0.25)
-    );
+    let pos = add(person.body.position, vec(0, -PERSON_HEIGHT * 0.25));
     bubbles.push({
       pos: pos,
       velocity: mult(
@@ -450,59 +420,11 @@ function drawBubbleSystem() {
 
 function draw() {
   background(10, 30, 50);
-  let mouse = vec(mouseX, mouseY);
-  let pirateLegs = add(person.pos, anchorPointDelta);
-  updateBallPos({ pos: pirateLegs });
-  updatePerson();
+  updatePirate();
   updateBubbleSystem();
   updateJellySystem();
   fill(255);
 
-  let pirateFrame = floor(min(mouseX / windowWidth, 1) * 7);
-
-  let pirateSpriteSheet = pirateIdleSpriteSheets[pirateIdleFrame];
-  if (swimming) {
-    if (frameCount % 10 == 0) {
-      pirateSwimFrame = (pirateSwimFrame + 1) % pirateSwimSpriteSheets.length;
-    }
-    pirateSpriteSheet = pirateSwimSpriteSheets[pirateSwimFrame];
-  }
-  pirateSpriteSheet.drawFrame(
-    pirateFrame,
-    person.pos.x,
-    person.pos.y,
-    PERSON_WIDTH,
-    PERSON_HEIGHT
-  );
-  stroke(60);
-  strokeWeight(4);
-  noFill();
-  let abovePerson = add(person.pos, vec(0, -CHAIN_LENGTH));
-  curve(
-    ball.pos.x,
-    ball.pos.y,
-    ball.pos.x,
-    ball.pos.y,
-    pirateLegs.x,
-    pirateLegs.y,
-    abovePerson.x,
-    abovePerson.y
-  );
-  fill(0);
-  rockSpriteSheet.drawFrame(
-    rockFrame,
-    ball.pos.x - 25,
-    ball.pos.y - 25,
-    50,
-    50
-  );
-
-  // draw matter stuff
-  stroke(255);
-  fill(255);
-
-  stroke(128);
-  strokeWeight(2);
   drawJellySystem();
   drawPirate();
   drawBubbleSystem();
