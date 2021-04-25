@@ -20,10 +20,6 @@ const Vector = Matter.Vector;
 
 // matter objects
 let engine;
-let chainConstraint;
-let personBody;
-let chain;
-let rockBody;
 
 const AIR = 0.9;
 const CHAIN_LENGTH = 150;
@@ -75,59 +71,6 @@ function setup() {
   engine = Engine.create();
   engine.gravity.y = 0.05;
 
-  group = Body.nextGroup(true);
-  personBody = Bodies.rectangle(
-    windowWidth / 2,
-    100,
-    PERSON_WIDTH,
-    PERSON_HEIGHT,
-    { inertia: Infinity, frictionAir: 0.03 }
-  );
-  let chainLinkLength = 10;
-  chain = Composites.stack(
-    personBody.position.x,
-    personBody.position.y + PERSON_HEIGHT / 2,
-    1,
-    8,
-    0,
-    0,
-    function (x, y) {
-      console.log(x, y);
-      return Bodies.rectangle(x, y, chainLinkLength, 3, {
-        collisionFilter: { group: group },
-      });
-    }
-  );
-  Composites.chain(chain, 0.5, 0, -0.5, 0, {
-    stiffness: 1,
-    length: 0,
-  });
-  Composite.add(
-    chain,
-    Constraint.create({
-      bodyB: chain.bodies[0],
-      pointB: { x: 0, y: 0 },
-      bodyA: personBody,
-      pointA: { x: 0, y: PERSON_HEIGHT / 2 },
-      stiffness: 0.5,
-    })
-  );
-  let lastChainBody = chain.bodies[chain.bodies.length - 1];
-  rockBody = Bodies.circle(
-    lastChainBody.position.x,
-    lastChainBody.position.y,
-    15
-  );
-  chainConstraint = Constraint.create({
-    bodyA: lastChainBody,
-    bodyB: rockBody,
-    pointA: { x: chainLinkLength, y: 0 },
-    pointB: { x: 0, y: chainLinkLength * 0.5 },
-    stiffness: 0.5,
-  });
-
-  World.add(engine.world, [personBody, rockBody, chain, chainConstraint]);
-
   const mouse = Mouse.create(canvas.elt);
   const mouseParams = {
     mouse: mouse,
@@ -136,6 +79,8 @@ function setup() {
   mouseConstraint = MouseConstraint.create(engine, mouseParams);
   mouseConstraint.mouse.pixelRatio = pixelDensity();
   World.add(engine.world, mouseConstraint);
+
+  spawnPirate(windowWidth / 2, 100);
 
   for (var i = 0; i < 10; i++) {
     spawnJelly(random(windowWidth), random(windowHeight));
@@ -148,11 +93,10 @@ function setup() {
     velocity: createVector(0, 0),
   };
   anchorPointDelta = createVector(PERSON_WIDTH / 2, PERSON_HEIGHT);
-  person = {
-    pos: add(ball.pos, anchorPointDelta),
-    velocity: createVector(0, 0),
-    energy: MAX_ENERGY,
-  };
+  person.pos = add(ball.pos, anchorPointDelta);
+  person.velocity = createVector(0, 0);
+  person.energy = MAX_ENERGY;
+
   for (var i = 0; i < TARGET_NUM_BUBBLES; i++) {
     bubbles.push({
       pos: createVector(random(0, windowWidth), random(0, windowHeight)),
@@ -160,6 +104,64 @@ function setup() {
       radius: random(3, 10),
     });
   }
+}
+
+function spawnPirate(x, y) {
+  console.log("Spawning pirate");
+  group = Body.nextGroup(true);
+  person = {};
+  person.body = Bodies.rectangle(x, y, PERSON_WIDTH, PERSON_HEIGHT, {
+    inertia: Infinity,
+    frictionAir: 0.03,
+  });
+
+  let chainLinkLength = 10;
+  person.chain = Composites.stack(
+    person.body.position.x,
+    person.body.position.y + PERSON_HEIGHT / 2,
+    8,
+    1,
+    0,
+    0,
+    function (x, y) {
+      return Bodies.rectangle(x, y, chainLinkLength, 3, {
+        collisionFilter: { group: group },
+      });
+    }
+  );
+  Composites.chain(person.chain, 0.5, 0, -0.5, 0, {
+    stiffness: 1,
+    length: 0,
+  });
+  Composite.add(
+    person.chain,
+    Constraint.create({
+      bodyB: person.chain.bodies[0],
+      pointB: { x: 0, y: 0 },
+      bodyA: person.body,
+      pointA: { x: 0, y: PERSON_HEIGHT / 2 },
+      stiffness: 0.5,
+    })
+  );
+  let lastChainBody = person.chain.bodies[person.chain.bodies.length - 1];
+  person.rock = Bodies.circle(
+    lastChainBody.position.x,
+    lastChainBody.position.y,
+    15
+  );
+
+  World.add(engine.world, [
+    person.body,
+    person.rock,
+    person.chain,
+    Constraint.create({
+      bodyA: lastChainBody,
+      bodyB: person.rock,
+      pointA: { x: chainLinkLength, y: 0 },
+      pointB: { x: 0, y: chainLinkLength * 0.5 },
+      stiffness: 0.5,
+    }),
+  ]);
 }
 
 let jellies = [];
@@ -257,9 +259,9 @@ function swimUp(m) {
   pauseIsOver = millis() - outOfEnergyTime > 1000;
   if (m && person.energy > 0 && pauseIsOver) {
     Body.applyForce(
-      personBody,
-      personBody.position,
-      Vector.rotate(Vector.create(0, -0.001), personBody.angle)
+      person.body,
+      person.body.position,
+      Vector.rotate(Vector.create(0, -0.001), person.body.angle)
     );
     person.velocity.add(createVector(0, -0.05));
     person.energy = max(person.energy - deltaTime, 0);
@@ -422,12 +424,12 @@ function draw() {
   // draw matter stuff
   stroke(255);
   fill(255);
-  drawVerticies(personBody.vertices);
-  drawVerticies(rockBody.vertices);
+
+  drawVerticies(person.body.vertices);
+  drawVerticies(person.rock.vertices);
   stroke(128);
   strokeWeight(2);
-  drawComposite(chain);
-  drawConstraint(chainConstraint);
+  drawComposite(person.chain);
   drawJellySystem();
 }
 
