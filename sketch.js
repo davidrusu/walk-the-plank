@@ -84,14 +84,14 @@ function setup() {
   engine = Engine.create();
   engine.gravity.y = 0.05;
 
-  const mouse = Mouse.create(canvas.elt);
-  const mouseParams = {
-    mouse: mouse,
-    constraint: { stiffness: 0.05 },
-  };
-  mouseConstraint = MouseConstraint.create(engine, mouseParams);
-  mouseConstraint.mouse.pixelRatio = pixelDensity();
-  World.add(engine.world, mouseConstraint);
+  // const mouse = Mouse.create(canvas.elt);
+  // const mouseParams = {
+  //   mouse: mouse,
+  //   constraint: { stiffness: 0.05 },
+  // };
+  // mouseConstraint = MouseConstraint.create(engine, mouseParams);
+  // mouseConstraint.mouse.pixelRatio = pixelDensity();
+  // World.add(engine.world, mouseConstraint);
 
   spawnPirate(windowWidth / 2, 100);
 
@@ -508,6 +508,12 @@ function draw() {
     drawOxygenOverlay();
   } else if (state == "TRANSITION") {
     background(10, 30, 50);
+    camera = lerpVec(
+      camera,
+      sub(person.body.position, mult(vec(windowWidth, windowHeight), 0.5)),
+      0.01
+    );
+    translate(-camera.x, -camera.y);
     drawJellySystem();
     drawPirate();
     drawBubbleSystem();
@@ -517,7 +523,7 @@ function draw() {
       (millis() - timeOfDeath) / 2000
     );
     fill(`rgba(0, 0, 0, ${screenBrightness})`);
-    rect(0, 0, windowWidth, windowHeight);
+    rect(camera.x, camera.y, windowWidth, windowHeight);
     if (millis() - timeOfDeath > 2000) {
       state = "DEAD";
     }
