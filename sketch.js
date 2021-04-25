@@ -43,6 +43,9 @@ let canvas;
 let outOfEnergyTime = -100000;
 let person;
 let swimming = false;
+let dead = false;
+let maxOxygen;
+let oxygen;
 
 let pirateIdleSpriteSheet;
 let pirateSwimSpriteSheets;
@@ -111,6 +114,7 @@ function setup() {
       radius: random(3, 10),
     });
   }
+  maxOxygen = oxygen = random(2, 4) * 1000 * 60;
 }
 
 function spawnPirate(x, y) {
@@ -277,14 +281,19 @@ function spawnJelly(x, y) {
     var group = Body.nextGroup(true);
     let joinX = (p - 0.5) * width * 0.5;
     let joinY = 0;
-    let tentacle = Composites.stack(x + joinX, y + joinY, 1, 8, 0, 0, function (
-      x,
-      y
-    ) {
-      let tentaclePart = Bodies.rectangle(x, y, 5, 2);
-      tentaclePart.isJellyTentacle = true;
-      return tentaclePart;
-    });
+    let tentacle = Composites.stack(
+      x + joinX,
+      y + joinY,
+      1,
+      8,
+      0,
+      0,
+      function (x, y) {
+        let tentaclePart = Bodies.rectangle(x, y, 5, 2);
+        tentaclePart.isJellyTentacle = true;
+        return tentaclePart;
+      }
+    );
     Composites.chain(tentacle, 0.5, 0, -0.5, 0, {
       stiffness: 0.8,
       length: 2,
@@ -453,6 +462,10 @@ function drawBubbleSystem() {
 }
 
 function draw() {
+  if (dead) {
+    drawDeathScreen();
+    return;
+  }
   background(10, 30, 50);
   updatePirate();
   updateBubbleSystem();
@@ -462,6 +475,22 @@ function draw() {
   drawJellySystem();
   drawPirate();
   drawBubbleSystem();
+  drawOxygenOverlay();
+}
+
+function drawOxygenOverlay() {
+  oxygen -= deltaTime;
+  oxygenPercentage = 1 - oxygen / maxOxygen;
+  fill(`rgba(0, 0, 0, ${oxygenPercentage})`);
+  rect(0, 0, windowWidth, windowHeight);
+}
+
+function drawDeathScreen() {
+  background(0);
+  textSize(64);
+  fill(255);
+  textAlign(CENTER);
+  text("You Have Died.", windowWidth / 2, windowHeight / 2);
 }
 
 function drawConstraint(constraint) {
