@@ -27,7 +27,7 @@ const rotateVec = Vector.rotate;
 const AIR = 0.9;
 const CHAIN_LENGTH = 150;
 const GRAVITY = 0.4;
-const MAX_ENERGY = 1500;
+const MAX_ENERGY = 6000;
 const PERSON_HEIGHT = 24 * 1.5; // multiples of 24
 const PERSON_WIDTH = 16 * 1.5; // multiples of 16
 const ROCK_RADIUS = 10;
@@ -37,18 +37,19 @@ let bubbles = [];
 let canvas;
 let outOfEnergyTime = -100000;
 let person;
-let camera = vec(0, 0);
+let camera;
 let mouse = vec(0, 0);
 let swimming = false;
 let maxOxygen;
 let oxygen;
 let screenBrightness;
 let timeOfDeath;
-let state = "ALIVE"; // ALIVE, DEAD, TRANSITION
+let state = "INTRO"; // ALIVE, DEAD, TRANSITION
 
 let pirateIdleSpriteSheet;
 let pirateSwimSpriteSheets;
 let rockSpriteSheet;
+let pirateShipImg;
 
 let rad2vec = (rad) => vec(cos(rad), sin(rad));
 let noiseVec = (x, y, t) => rad2vec(noise(x, y, t) * PI * 2);
@@ -56,6 +57,7 @@ let lerpVec = (v1, v2, p) => vec(lerp(v1.x, v2.x, p), lerp(v1.y, v2.y, p));
 let distVec = (v1, v2) => mag(sub(v2, v1));
 
 function preload() {
+  pirateShipImg = loadImage("assets/pirate_ship_pixels.png");
   pirateIdleSpriteSheets = [
     loadSpriteSheet("assets/pirate_idle_1_spritesheet.png", 16, 24, 8),
     loadSpriteSheet("assets/pirate_idle_2_spritesheet.png", 16, 24, 8),
@@ -92,11 +94,17 @@ function setup() {
   // mouseConstraint = MouseConstraint.create(engine, mouseParams);
   // mouseConstraint.mouse.pixelRatio = pixelDensity();
   // World.add(engine.world, mouseConstraint);
+  camera = vec(200 - windowWidth * 0.5, -300 - windowHeight * 0.5);
+  spawnPirate(400, -200);
+  Body.setInertia(person.body, Infinity);
+  person.body.inverseInertia = 0;
+  plank = Bodies.rectangle(400, -120, 200, 20, {
+    isStatic: true,
+  });
+  Composite.add(engine.world, plank);
 
-  spawnPirate(windowWidth / 2, 100);
-
-  for (var i = 0; i < 30; i++) {
-    spawnJelly(random(windowWidth), random(windowHeight));
+  for (var i = 0; i < 100; i++) {
+    spawnJelly(random(windowWidth) + windowWidth, random(windowHeight) + 500);
   }
   Engine.run(engine);
 
@@ -119,7 +127,6 @@ function spawnPirate(x, y) {
     health: 1,
   };
   person.body = Bodies.rectangle(x, y, PERSON_WIDTH, PERSON_HEIGHT, {
-    inertia: 100,
     frictionAir: 0.03,
   });
 
@@ -357,7 +364,11 @@ function updatePirate() {
 
 function swimUp(m) {
   pauseIsOver = millis() - outOfEnergyTime > 3000;
-  if (m && person.energy > 0 && pauseIsOver) {
+  swimming = false;
+  if (person.body.position.y < 0) {
+    Body.applyForce(person.body, person.body.position, vec(0, 0.001));
+    Body.applyForce(person.rock, person.rock.position, vec(0, 0.001));
+  } else if (m && person.energy > 0 && pauseIsOver) {
     Body.applyForce(
       person.body,
       person.body.position,
@@ -368,11 +379,9 @@ function swimUp(m) {
     if (person.energy == 0) {
       outOfEnergyTime = millis();
     }
-  } else {
-    swimming = false;
-    if (pauseIsOver) {
-      person.energy = min(person.energy + deltaTime * 0.3, MAX_ENERGY);
-    }
+  }
+  if (pauseIsOver) {
+    person.energy = min(person.energy + deltaTime * 0.3, MAX_ENERGY);
   }
 }
 
@@ -478,7 +487,7 @@ function drawBubbleSystem() {
   }
 }
 
-let lastGenPoint = vec(0, 0);
+let lastGenPoint = vec(0, -100);
 let shapes = [];
 function updateTerrainSystem() {
   let GEN_BOUNDS = 100;
@@ -532,6 +541,7 @@ function drawTerrainSystem() {
 }
 
 function draw() {
+  background(10, 30, 50);
   camera = lerpVec(
     camera,
     sub(person.body.position, mult(vec(windowWidth, windowHeight), 0.5)),
@@ -540,12 +550,44 @@ function draw() {
   mouse = add(camera, vec(mouseX, mouseY));
   translate(-camera.x, -camera.y);
 
+  fill(135, 206, 235);
+  rect(camera.x, -windowHeight, windowWidth, windowHeight);
+
+  image(pirateShipImg, 200, -300, 500, 300);
+
   if (state == "DEAD") {
     translate(camera.x, camera.y);
     drawDeathScreen();
-  } else if (state == "ALIVE") {
-    background(10, 30, 50);
+    return;
+  }
 
+  if (plank && millis() > 4000) {
+    Composite.remove(engine.world, plank);
+    plank = null;
+  }
+
+  if (state == "INTRO") {
+    updatePirate();
+    updateBubbleSystem();
+    updateJellySystem();
+    while (updateTerrainSystem()) {}
+
+    drawTerrainSystem();
+    drawJellySystem();
+    drawPirate();
+    drawBubbleSystem();
+    translate(camera.x, camera.y);
+    drawOxygenOverlay();
+    if (millis() > 2000) {
+      Body.setInertia(person.body, 100);
+      Body.applyForce(person.rock, person.rock.position, vec(0.03, -0.03));
+      state = "ALIVE";
+    }
+    // if (millis() > 4000) {
+    //   Body.applyForce(person.body, person.body.position, vec(0.03, -0.03));
+    //   state = "ALIVE";
+    // };
+  } else if (state == "ALIVE") {
     updatePirate();
     updateBubbleSystem();
     updateJellySystem();
@@ -558,7 +600,6 @@ function draw() {
     translate(camera.x, camera.y);
     drawOxygenOverlay();
   } else if (state == "TRANSITION") {
-    background(10, 30, 50);
     drawTerrainSystem();
     drawJellySystem();
     drawPirate();
