@@ -103,18 +103,14 @@ function setup() {
   });
   Composite.add(engine.world, plank);
 
-  for (var i = 0; i < 100; i++) {
-    spawnJelly(random(windowWidth) + windowWidth, random(windowHeight) + 500);
+  for (var i = 0; i < 50; i++) {
+    spawnJelly(
+      random(windowWidth * 2) + windowWidth,
+      random(windowHeight * 2) + 500
+    );
   }
   Engine.run(engine);
 
-  for (var i = 0; i < 50; i++) {
-    bubbles.push({
-      pos: vec(random(0, windowWidth), random(0, windowHeight)),
-      velocity: vec(0, random(-0.1, -0.2)),
-      radius: random(3, 10),
-    });
-  }
   maxOxygen = oxygen = random(2, 4) * 1000 * 60;
   console.log(`${(maxOxygen / 60000).toFixed(2)} minutes of oxygen this game`);
 }
@@ -432,7 +428,7 @@ function updateBubbleSystem() {
     bubble.velocity = add(bubble.velocity, randomness);
     bubble.velocity = add(bubble.velocity, vec(0, -0.005));
     bubble.velocity.y *= lerp(AIR, 1, 0.8);
-    if (dist(bubble.pos, camera) > BUBBLE_BOUNDS * 1.3) {
+    if (bubble.pos.y < 0 || dist(bubble.pos, camera) > BUBBLE_BOUNDS * 1.3) {
       toRemove.push(i);
     } else if (random() < 0.001 * bubble.radius && bubble.radius > 5) {
       toRemove.push(i);
@@ -481,8 +477,8 @@ function updateBubbleSystem() {
 function drawBubbleSystem() {
   for (var i = 0; i < bubbles.length; i++) {
     let bubble = bubbles[i];
-    fill(255, 50);
-    stroke(255, 80);
+    fill(255, 20);
+    stroke(255, 40);
     circle(bubble.pos.x, bubble.pos.y, bubble.radius);
   }
 }
@@ -541,6 +537,7 @@ function drawTerrainSystem() {
 }
 
 function draw() {
+  textFont("monospace");
   background(10, 30, 50);
   camera = lerpVec(
     camera,
@@ -553,8 +550,33 @@ function draw() {
   fill(135, 206, 235);
   rect(camera.x, -windowHeight, windowWidth, windowHeight);
 
+  let N = 30;
+  let M = 6;
+  let phase = 0;
+  for (var j = 0; j < M; j++) {
+    phase += (PI * 0.5) / M;
+    for (var i = 0; i < N; i++) {
+      let x = (i) => camera.x + (i / N) * windowWidth * 2;
+      let y = (i) =>
+        sin(i * 0.3 + millis() * 0.002 * ((j + 1) / M) + phase) * 10 + 0;
+      strokeWeight(3);
+      stroke(color(70, 90 + j * 10, 120 + j * 10));
+      line(x(i - 1), y(i - 1), x(i), y(i));
+    }
+  }
+
   image(pirateShipImg, 200, -300, 500, 300);
 
+  translate(150, -50);
+  stroke(0);
+  strokeWeight(2);
+  fill(255);
+  rect(190, -330, 150, 40);
+  textSize(32);
+  fill(0);
+  noStroke();
+  text("GTFO!!", 210, -300);
+  translate(-150, 50);
   if (state == "DEAD") {
     translate(camera.x, camera.y);
     drawDeathScreen();
@@ -572,12 +594,13 @@ function draw() {
     updateJellySystem();
     while (updateTerrainSystem()) {}
 
-    drawTerrainSystem();
     drawJellySystem();
-    drawPirate();
     drawBubbleSystem();
+    drawTerrainSystem();
+    drawPirate();
     translate(camera.x, camera.y);
     drawOxygenOverlay();
+    fill(255);
     if (millis() > 2000) {
       Body.setInertia(person.body, 100);
       Body.applyForce(person.rock, person.rock.position, vec(0.03, -0.03));
@@ -593,17 +616,17 @@ function draw() {
     updateJellySystem();
     while (updateTerrainSystem()) {}
 
-    drawTerrainSystem();
     drawJellySystem();
-    drawPirate();
     drawBubbleSystem();
+    drawTerrainSystem();
+    drawPirate();
     translate(camera.x, camera.y);
     drawOxygenOverlay();
   } else if (state == "TRANSITION") {
-    drawTerrainSystem();
     drawJellySystem();
-    drawPirate();
     drawBubbleSystem();
+    drawTerrainSystem();
+    drawPirate();
     screenBrightness = lerp(
       1 - oxygen / maxOxygen,
       1,
