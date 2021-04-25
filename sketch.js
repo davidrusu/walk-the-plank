@@ -83,42 +83,46 @@ function setup() {
     PERSON_HEIGHT,
     { inertia: Infinity, frictionAir: 0.03 }
   );
+  let chainLinkLength = 10;
   chain = Composites.stack(
     personBody.position.x,
     personBody.position.y + PERSON_HEIGHT / 2,
-    8,
     1,
-    10,
-    10,
+    8,
+    0,
+    0,
     function (x, y) {
       console.log(x, y);
-      return Bodies.rectangle(x, y, 15, 3, {
+      return Bodies.rectangle(x, y, chainLinkLength, 3, {
         collisionFilter: { group: group },
       });
     }
   );
-  Composites.chain(chain, 0.3, 0, -0.3, 0, { stiffness: 1, length: 0 });
+  Composites.chain(chain, 0.5, 0, -0.5, 0, {
+    stiffness: 1,
+    length: 0,
+  });
   Composite.add(
     chain,
     Constraint.create({
       bodyB: chain.bodies[0],
-      pointB: { x: -10, y: 0 },
+      pointB: { x: 0, y: 0 },
       bodyA: personBody,
       pointA: { x: 0, y: PERSON_HEIGHT / 2 },
       stiffness: 0.5,
     })
   );
   let lastChainBody = chain.bodies[chain.bodies.length - 1];
-  rockBody = Bodies.polygon(
+  rockBody = Bodies.circle(
     lastChainBody.position.x,
     lastChainBody.position.y,
-    1,
     15
   );
   chainConstraint = Constraint.create({
-    bodyA: chain.bodies[chain.bodies.length - 1],
+    bodyA: lastChainBody,
     bodyB: rockBody,
-    pointB: { x: 0, y: -15 },
+    pointA: { x: chainLinkLength, y: 0 },
+    pointB: { x: 0, y: chainLinkLength * 0.5 },
     stiffness: 0.5,
   });
 
@@ -252,7 +256,11 @@ function updatePerson() {
 function swimUp(m) {
   pauseIsOver = millis() - outOfEnergyTime > 1000;
   if (m && person.energy > 0 && pauseIsOver) {
-    Body.applyForce(personBody, personBody.position, Vector.create(0, -0.005));
+    Body.applyForce(
+      personBody,
+      personBody.position,
+      Vector.rotate(Vector.create(0, -0.001), personBody.angle)
+    );
     person.velocity.add(createVector(0, -0.05));
     person.energy = max(person.energy - deltaTime, 0);
     swimming = true;
