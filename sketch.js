@@ -24,7 +24,7 @@ let engine;
 const AIR = 0.9;
 const CHAIN_LENGTH = 150;
 const GRAVITY = 0.4;
-const MAX_ENERGY = 2000;
+const MAX_ENERGY = 1500;
 const PERSON_HEIGHT = 24 * 1.5; // multiples of 24
 const PERSON_WIDTH = 16 * 1.5; // multiples of 16
 const ROCK_RADIUS = 15;
@@ -298,12 +298,12 @@ function updatePerson() {
 }
 
 function swimUp(m) {
-  pauseIsOver = millis() - outOfEnergyTime > 1000;
+  pauseIsOver = millis() - outOfEnergyTime > 3000;
   if (m && person.energy > 0 && pauseIsOver) {
     Body.applyForce(
       person.body,
       person.body.position,
-      Vector.rotate(Vector.create(0, -0.001), person.body.angle)
+      Vector.rotate(Vector.create(0, -0.0004), person.body.angle)
     );
     person.velocity.add(createVector(0, -0.05));
     person.energy = max(person.energy - deltaTime, 0);
