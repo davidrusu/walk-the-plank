@@ -31,7 +31,6 @@ const MAX_ENERGY = 1500;
 const PERSON_HEIGHT = 24 * 1.5; // multiples of 24
 const PERSON_WIDTH = 16 * 1.5; // multiples of 16
 const ROCK_RADIUS = 10;
-const TARGET_NUM_BUBBLES = 100;
 
 let engine;
 let bubbles = [];
@@ -83,14 +82,14 @@ function setup() {
   engine = Engine.create();
   engine.gravity.y = 0.05;
 
-  const mouse = Mouse.create(canvas.elt);
-  const mouseParams = {
-    mouse: mouse,
-    constraint: { stiffness: 0.05 },
-  };
-  mouseConstraint = MouseConstraint.create(engine, mouseParams);
-  mouseConstraint.mouse.pixelRatio = pixelDensity();
-  World.add(engine.world, mouseConstraint);
+  // const mouse = Mouse.create(canvas.elt);
+  // const mouseParams = {
+  //   mouse: mouse,
+  //   constraint: { stiffness: 0.05 },
+  // };
+  // mouseConstraint = MouseConstraint.create(engine, mouseParams);
+  // mouseConstraint.mouse.pixelRatio = pixelDensity();
+  // World.add(engine.world, mouseConstraint);
 
   spawnPirate(windowWidth / 2, 100);
 
@@ -99,7 +98,7 @@ function setup() {
   }
   Engine.run(engine);
 
-  for (var i = 0; i < TARGET_NUM_BUBBLES; i++) {
+  for (var i = 0; i < 50; i++) {
     bubbles.push({
       pos: vec(random(0, windowWidth), random(0, windowHeight)),
       velocity: vec(0, random(-0.1, -0.2)),
@@ -365,13 +364,25 @@ function swimUp(m) {
       person.energy = min(person.energy + deltaTime * 0.3, MAX_ENERGY);
     }
   }
-  rect(0, windowHeight - 50, (windowWidth * person.energy) / MAX_ENERGY, 20);
+  rect(
+    camera.x,
+    camera.y + windowHeight - 50,
+    (windowWidth * person.energy) / MAX_ENERGY,
+    20
+  );
 }
 
 function updateBubbleSystem() {
-  if (random() < 0.05) {
+  let BUBBLE_BOUNDS = sqrt(
+    windowWidth * windowWidth + windowHeight * windowHeight
+  );
+
+  if (random() < 0.1) {
     bubbles.push({
-      pos: vec(random(0, windowWidth), windowHeight),
+      pos: add(
+        camera,
+        vec(random(-BUBBLE_BOUNDS, BUBBLE_BOUNDS), BUBBLE_BOUNDS)
+      ),
       velocity: vec(0, random(-0.1, -0.2)),
       radius: random(3, 10),
     });
@@ -408,7 +419,7 @@ function updateBubbleSystem() {
     bubble.velocity = add(bubble.velocity, randomness);
     bubble.velocity = add(bubble.velocity, vec(0, -0.005));
     bubble.velocity.y *= lerp(AIR, 1, 0.8);
-    if (bubble.pos.y < 0) {
+    if (dist(bubble.pos, camera) > BUBBLE_BOUNDS * 1.3) {
       toRemove.push(i);
     } else if (random() < 0.001 * bubble.radius && bubble.radius > 5) {
       toRemove.push(i);
