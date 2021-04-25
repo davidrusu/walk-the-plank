@@ -159,7 +159,7 @@ function spawnPirate(x, y) {
       bodyA: lastChainBody,
       bodyB: person.rock,
       pointA: { x: chainLinkLength, y: 0 },
-      pointB: { x: 0, y: chainLinkLength * 0.5 },
+      pointB: { x: 0, y: chainLinkLength },
       stiffness: 0.5,
     }),
   ]);
@@ -212,12 +212,17 @@ function spawnJelly(x, y) {
     var group = Body.nextGroup(true);
     let joinX = (p - 0.5) * width * 0.5;
     let joinY = 0;
-    let tentacle = Composites.stack(x + joinX, y + joinY, 1, 8, 0, 0, function (
-      x,
-      y
-    ) {
-      return Bodies.rectangle(x, y, 5, 2);
-    });
+    let tentacle = Composites.stack(
+      x + joinX,
+      y + joinY,
+      1,
+      8,
+      0,
+      0,
+      function (x, y) {
+        return Bodies.rectangle(x, y, 5, 2);
+      }
+    );
     Composites.chain(tentacle, 0.5, 0, -0.5, 0, {
       stiffness: 0.8,
       length: 2,
@@ -325,7 +330,10 @@ function updateBubbleSystem() {
   let noiseTime = millis() * 0.0001;
   let noiseScale = 0.1;
   if (random() < (swimming ? 0.5 : 0.1)) {
-    let pos = add(person.pos, createVector(PERSON_WIDTH / 2, 10));
+    let pos = add(
+      createVector(person.body.position.x, person.body.position.y),
+      createVector(PERSON_WIDTH / 2, 10)
+    );
     bubbles.push({
       pos: pos,
       velocity: mult(
