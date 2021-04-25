@@ -268,6 +268,15 @@ function drawPirate() {
   rotate(-person.rock.angle);
   translate(-person.rock.position.x, -person.rock.position.y);
 
+  // Drawing the energy bar
+  fill(255);
+  rect(
+    camera.x,
+    camera.y + windowHeight - 50,
+    (windowWidth * person.energy) / MAX_ENERGY,
+    20
+  );
+
   if (debug) {
     noFill();
     stroke(255, 0, 0);
@@ -289,19 +298,14 @@ function spawnJelly(x, y) {
     var group = Body.nextGroup(true);
     let joinX = (p - 0.5) * width * 0.5;
     let joinY = 0;
-    let tentacle = Composites.stack(
-      x + joinX,
-      y + joinY,
-      1,
-      8,
-      0,
-      0,
-      function (x, y) {
-        let tentaclePart = Bodies.rectangle(x, y, 5, 2);
-        tentaclePart.isJellyTentacle = true;
-        return tentaclePart;
-      }
-    );
+    let tentacle = Composites.stack(x + joinX, y + joinY, 1, 8, 0, 0, function (
+      x,
+      y
+    ) {
+      let tentaclePart = Bodies.rectangle(x, y, 5, 2);
+      tentaclePart.isJellyTentacle = true;
+      return tentaclePart;
+    });
     Composites.chain(tentacle, 0.5, 0, -0.5, 0, {
       stiffness: 0.8,
       length: 2,
@@ -370,12 +374,6 @@ function swimUp(m) {
       person.energy = min(person.energy + deltaTime * 0.3, MAX_ENERGY);
     }
   }
-  rect(
-    camera.x,
-    camera.y + windowHeight - 50,
-    (windowWidth * person.energy) / MAX_ENERGY,
-    20
-  );
 }
 
 function updateBubbleSystem() {
@@ -480,27 +478,80 @@ function drawBubbleSystem() {
   }
 }
 
+let lastGenPoint = vec(0, 0);
+let shapes = [];
+function updateTerrainSystem() {
+  let GEN_BOUNDS = 100;
+  let SCREEN_HEIGHT = windowHeight;
+  if (camera.y + SCREEN_HEIGHT + GEN_BOUNDS < lastGenPoint.y) {
+    return false;
+  }
+
+  let firstPoint = lastGenPoint;
+
+  lastGenPoint = add(
+    firstPoint,
+    mult(
+      add(mult(noiseVec(firstPoint.x, firstPoint.y, 0), 3), vec(3, 2)),
+      random(10, 15)
+    )
+  );
+
+  let shape = [
+    vec(-windowWidth, firstPoint.y),
+    firstPoint,
+    lastGenPoint,
+    vec(-windowWidth, lastGenPoint.y),
+  ];
+  let avgX = 0;
+  let avgY = 0;
+  for (var i = 0; i < shape.length; i++) {
+    avgX += shape[i].x;
+    avgY += shape[i].y;
+  }
+  avgX /= shape.length;
+  avgY /= shape.length;
+  let terrain = Bodies.fromVertices(avgX, avgY, shape, {
+    isStatic: true,
+  });
+  Composite.add(engine.world, terrain);
+  shapes.push(terrain);
+  console.log(terrain.vertices.length, shape.length);
+  return true;
+}
+
+function drawTerrainSystem() {
+  let terrainColor = color(200, 170, 90);
+  stroke(terrainColor);
+  fill(terrainColor);
+  shapes.forEach((s, i) => {
+    if (i > 0) {
+      drawVerticies(s.vertices);
+    }
+  });
+}
+
 function draw() {
+  camera = lerpVec(
+    camera,
+    sub(person.body.position, mult(vec(windowWidth, windowHeight), 0.5)),
+    0.01
+  );
+  mouse = add(camera, vec(mouseX, mouseY));
+  translate(-camera.x, -camera.y);
+
   if (state == "DEAD") {
+    translate(camera.x, camera.y);
     drawDeathScreen();
   } else if (state == "ALIVE") {
     background(10, 30, 50);
 
-    camera = lerpVec(
-      camera,
-      sub(person.body.position, mult(vec(windowWidth, windowHeight), 0.5)),
-      0.01
-    );
-
-    mouse = add(camera, vec(mouseX, mouseY));
-
-    translate(-camera.x, -camera.y);
-
     updatePirate();
     updateBubbleSystem();
     updateJellySystem();
-    fill(255);
+    while (updateTerrainSystem()) {}
 
+    drawTerrainSystem();
     drawJellySystem();
     drawPirate();
     drawBubbleSystem();
@@ -508,12 +559,7 @@ function draw() {
     drawOxygenOverlay();
   } else if (state == "TRANSITION") {
     background(10, 30, 50);
-    camera = lerpVec(
-      camera,
-      sub(person.body.position, mult(vec(windowWidth, windowHeight), 0.5)),
-      0.01
-    );
-    translate(-camera.x, -camera.y);
+    drawTerrainSystem();
     drawJellySystem();
     drawPirate();
     drawBubbleSystem();
