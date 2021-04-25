@@ -171,17 +171,12 @@ function spawnJelly(x, y) {
     var group = Body.nextGroup(true);
     let joinX = (p - 0.5) * width * 0.5;
     let joinY = 0;
-    let tentacle = Composites.stack(
-      x + joinX,
-      y + joinY,
-      1,
-      8,
-      0,
-      0,
-      function (x, y) {
-        return Bodies.rectangle(x, y, 5, 2);
-      }
-    );
+    let tentacle = Composites.stack(x + joinX, y + joinY, 1, 8, 0, 0, function (
+      x,
+      y
+    ) {
+      return Bodies.rectangle(x, y, 5, 2);
+    });
     Composites.chain(tentacle, 0.5, 0, -0.5, 0, {
       stiffness: 0.8,
       length: 2,
@@ -257,6 +252,7 @@ function updatePerson() {
 function swimUp(m) {
   pauseIsOver = millis() - outOfEnergyTime > 1000;
   if (m && person.energy > 0 && pauseIsOver) {
+    Body.applyForce(personBody, personBody.position, Vector.create(0, -0.005));
     person.velocity.add(createVector(0, -0.05));
     person.energy = max(person.energy - deltaTime, 0);
     swimming = true;
