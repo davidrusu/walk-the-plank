@@ -38,6 +38,8 @@ let bubbles = [];
 let canvas;
 let outOfEnergyTime = -100000;
 let person;
+let camera = vec(0, 0);
+let mouse = vec(0, 0);
 let swimming = false;
 let dead = false;
 let maxOxygen;
@@ -49,6 +51,8 @@ let rockSpriteSheet;
 
 let rad2vec = (rad) => vec(cos(rad), sin(rad));
 let noiseVec = (x, y, t) => rad2vec(noise(x, y, t) * PI * 2);
+let lerpVec = (v1, v2, p) => vec(lerp(v1.x, v2.x, p), lerp(v1.y, v2.y, p));
+let distVec = (v1, v2) => mag(sub(v2, v1));
 
 function preload() {
   pirateIdleSpriteSheets = [
@@ -188,7 +192,9 @@ let rockFrame = 0;
 let pirateSwimFrame = 0;
 let pirateIdleFrame = 0;
 function drawPirate() {
-  let pirateFrame = floor(min(max(mouseX / windowWidth, 0), 1) * 7);
+  let pirateFrame = floor(
+    ((min(max((mouse.x - person.body.position.x) / 500, -1), 1) + 1) / 2) * 7
+  );
   if (frameCount % 10 == 0) {
     pirateSwimFrame = (pirateSwimFrame + 1) % pirateSwimSpriteSheets.length;
     pirateIdleFrame = (pirateIdleFrame + 1) % pirateIdleSpriteSheets.length;
@@ -244,13 +250,18 @@ function drawPirate() {
   if (frameCount % 10 == 0) {
     rockFrame = (rockFrame + 1) % 8;
   }
+
+  translate(person.rock.position.x, person.rock.position.y);
+  rotate(person.rock.angle);
   rockSpriteSheet.drawFrame(
     rockFrame,
-    person.rock.position.x - ROCK_RADIUS * 2,
-    person.rock.position.y - ROCK_RADIUS * 2,
+    -ROCK_RADIUS * 2,
+    -ROCK_RADIUS * 2,
     ROCK_RADIUS * 4,
     ROCK_RADIUS * 4
   );
+  rotate(-person.rock.angle);
+  translate(-person.rock.position.x, -person.rock.position.y);
 
   if (debug) {
     noFill();
@@ -329,7 +340,6 @@ function windowResized() {
 
 function updatePirate() {
   let clampedDt = max(deltaTime, 1.0);
-  let mouse = vec(mouseX, mouseY);
   let forceVec = mult(norm(sub(mouse, person.body.position)), 0.0003);
   forceVec.y *= 0.3;
   Body.applyForce(person.body, person.body.position, forceVec);
@@ -459,6 +469,17 @@ function draw() {
     return;
   }
   background(10, 30, 50);
+
+  camera = lerpVec(
+    camera,
+    sub(person.body.position, mult(vec(windowWidth, windowHeight), 0.5)),
+    0.01
+  );
+
+  mouse = add(camera, vec(mouseX, mouseY));
+
+  translate(-camera.x, -camera.y);
+
   updatePirate();
   updateBubbleSystem();
   updateJellySystem();
