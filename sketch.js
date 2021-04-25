@@ -27,6 +27,7 @@ const GRAVITY = 0.4;
 const MAX_ENERGY = 2000;
 const PERSON_HEIGHT = 24 * 3; // multiples of 24
 const PERSON_WIDTH = 16 * 3; // multiples of 16
+const ROCK_RADIUS = 15;
 const TARGET_NUM_BUBBLES = 100;
 
 let anchorPointDelta;
@@ -147,7 +148,7 @@ function spawnPirate(x, y) {
   person.rock = Bodies.circle(
     lastChainBody.position.x,
     lastChainBody.position.y,
-    15
+    ROCK_RADIUS
   );
 
   World.add(engine.world, [
@@ -162,6 +163,40 @@ function spawnPirate(x, y) {
       stiffness: 0.5,
     }),
   ]);
+}
+
+let rockFrame = 0;
+let pirateSwimFrame = 0;
+function drawPirate() {
+  let pirateFrame = floor(min(mouseX / windowWidth, 1) * 7);
+  let pirateSpriteSheet = pirateIdleSpriteSheet;
+  if (swimming) {
+    if (frameCount % 10 == 0) {
+      pirateSwimFrame = (pirateSwimFrame + 1) % pirateSwimSpriteSheets.length;
+    }
+    pirateSpriteSheet = pirateSwimSpriteSheets[pirateSwimFrame];
+  }
+  pirateSpriteSheet.drawFrame(
+    pirateFrame,
+    person.body.position.x - PERSON_WIDTH / 2,
+    person.body.position.y - PERSON_HEIGHT / 2,
+    PERSON_WIDTH,
+    PERSON_HEIGHT
+  );
+  fill(60);
+  noStroke();
+  drawComposite(person.chain);
+
+  if (frameCount % 10 == 0) {
+    rockFrame = (rockFrame + 1) % 8;
+  }
+  rockSpriteSheet.drawFrame(
+    rockFrame,
+    person.rock.position.x - ROCK_RADIUS * 2,
+    person.rock.position.y - ROCK_RADIUS * 2,
+    ROCK_RADIUS * 4,
+    ROCK_RADIUS * 4
+  );
 }
 
 let jellies = [];
@@ -368,8 +403,6 @@ function updateBubbleSystem() {
   }
 }
 
-let rockFrame = 0;
-let pirateSwimFrame = 0;
 function draw() {
   background(10, 30, 50);
   let mouse = createVector(mouseX, mouseY);
@@ -417,9 +450,6 @@ function draw() {
     50,
     50
   );
-  if (frameCount % 5 == 0) {
-    rockFrame = (rockFrame + 1) % 8;
-  }
 
   // draw matter stuff
   stroke(255);
@@ -429,8 +459,8 @@ function draw() {
   drawVerticies(person.rock.vertices);
   stroke(128);
   strokeWeight(2);
-  drawComposite(person.chain);
   drawJellySystem();
+  drawPirate();
 }
 
 function drawConstraint(constraint) {
