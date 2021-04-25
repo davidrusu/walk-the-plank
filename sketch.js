@@ -27,7 +27,7 @@ const GRAVITY = 0.4;
 const MAX_ENERGY = 2000;
 const PERSON_HEIGHT = 24 * 1.5; // multiples of 24
 const PERSON_WIDTH = 16 * 1.5; // multiples of 16
-const ROCK_RADIUS = 15;
+const ROCK_RADIUS = 10;
 const TARGET_NUM_BUBBLES = 100;
 
 let anchorPointDelta;
@@ -159,7 +159,7 @@ function spawnPirate(x, y) {
       bodyA: lastChainBody,
       bodyB: person.rock,
       pointA: { x: chainLinkLength, y: 0 },
-      pointB: { x: 0, y: chainLinkLength },
+      pointB: { x: 0, y: 0 },
       stiffness: 0.5,
     }),
   ]);
@@ -214,17 +214,12 @@ function spawnJelly(x, y) {
     var group = Body.nextGroup(true);
     let joinX = (p - 0.5) * width * 0.5;
     let joinY = 0;
-    let tentacle = Composites.stack(
-      x + joinX,
-      y + joinY,
-      1,
-      8,
-      0,
-      0,
-      function (x, y) {
-        return Bodies.rectangle(x, y, 5, 2);
-      }
-    );
+    let tentacle = Composites.stack(x + joinX, y + joinY, 1, 8, 0, 0, function (
+      x,
+      y
+    ) {
+      return Bodies.rectangle(x, y, 5, 2);
+    });
     Composites.chain(tentacle, 0.5, 0, -0.5, 0, {
       stiffness: 0.8,
       length: 2,
