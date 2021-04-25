@@ -1,6 +1,6 @@
 // SPRITESHEETS
 // https://code-dot-org.github.io/p5.play/docs/classes/SpriteSheet.html
-
+const debug = false;
 const add = p5.Vector.add;
 const sub = p5.Vector.sub;
 const mult = p5.Vector.mult;
@@ -185,6 +185,29 @@ function drawPirate() {
     PERSON_WIDTH * 2,
     PERSON_HEIGHT * 2
   );
+
+  for (var i = 0; i < 5; i++) {
+    if (i % 2) {
+      stroke(40);
+    } else {
+      stroke(50);
+    }
+    noFill();
+    strokeWeight(3);
+    let clamp = (v, m, M) => min(max(v, m), M);
+    let chainKnotRadius = PERSON_WIDTH * 0.45;
+    let iOffset = i * 3 - 2;
+    curve(
+      person.body.position.x - chainKnotRadius,
+      person.body.position.y + iOffset,
+      person.body.position.x - chainKnotRadius,
+      person.body.position.y + 15 + iOffset,
+      person.body.position.x + chainKnotRadius,
+      person.body.position.y + 15 + iOffset,
+      person.body.position.x + chainKnotRadius,
+      person.body.position.y + iOffset
+    );
+  }
   fill(60);
   noStroke();
   drawComposite(person.chain);
@@ -199,6 +222,13 @@ function drawPirate() {
     ROCK_RADIUS * 4,
     ROCK_RADIUS * 4
   );
+
+  if (debug) {
+    noFill();
+    stroke(255, 0, 0);
+    drawVerticies(person.body.vertices);
+    drawVerticies(person.rock.vertices);
+  }
 }
 
 let jellies = [];
@@ -254,6 +284,8 @@ function updateJellySystem() {
 
 function drawJellySystem() {
   jellies.forEach(([h, ts]) => {
+    noStroke();
+    fill(70, 130, 200);
     drawVerticies(h.vertices);
     ts.forEach((t) => drawComposite(t));
   });
@@ -461,8 +493,6 @@ function draw() {
   stroke(255);
   fill(255);
 
-  drawVerticies(person.body.vertices);
-  drawVerticies(person.rock.vertices);
   stroke(128);
   strokeWeight(2);
   drawJellySystem();
