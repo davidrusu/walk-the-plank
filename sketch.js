@@ -13,6 +13,7 @@ const MouseConstraint = Matter.MouseConstraint;
 const Render = Matter.Render;
 const World = Matter.World;
 const Vector = Matter.Vector;
+const Events = Matter.Events;
 
 const vec = Vector.create;
 const add = Vector.add;
@@ -102,7 +103,6 @@ function setup() {
     velocity: vec(0, 0),
   };
   anchorPointDelta = vec(PERSON_WIDTH / 2, PERSON_HEIGHT);
-  person.energy = MAX_ENERGY;
 
   for (var i = 0; i < TARGET_NUM_BUBBLES; i++) {
     bubbles.push({
@@ -116,7 +116,10 @@ function setup() {
 function spawnPirate(x, y) {
   console.log("Spawning pirate");
   group = Body.nextGroup(true);
-  person = {};
+  person = {
+    energy: MAX_ENERGY,
+    health: 1,
+  };
   person.body = Bodies.rectangle(x, y, PERSON_WIDTH, PERSON_HEIGHT, {
     inertia: 100,
     frictionAir: 0.03,
@@ -164,13 +167,32 @@ function spawnPirate(x, y) {
       stiffness: 0.5,
     }),
   ]);
+
+  Events.on(engine, "collisionStart", (event) => {
+    let pairs = event.pairs;
+
+    for (var i = 0; i < pairs.length; i++) {
+      var pair = pairs[i];
+      if (
+        (pair.bodyA === person.body && pair.bodyB.isJellyTentacle) ||
+        (pair.bodyB === person.body && pair.bodyA.isJellyTentacle)
+      ) {
+        damagePirate(0.05);
+      }
+    }
+  });
+}
+
+function damagePirate(damage) {
+  console.log("damage", damage);
+  person.health = max(0, person.health - damage);
 }
 
 let rockFrame = 0;
 let pirateSwimFrame = 0;
 let pirateIdleFrame = 0;
 function drawPirate() {
-  let pirateFrame = floor(min(mouseX / windowWidth, 1) * 7);
+  let pirateFrame = floor(min(max(mouseX / windowWidth, 0), 1) * 7);
   if (frameCount % 10 == 0) {
     pirateSwimFrame = (pirateSwimFrame + 1) % pirateSwimSpriteSheets.length;
     pirateIdleFrame = (pirateIdleFrame + 1) % pirateIdleSpriteSheets.length;
@@ -181,6 +203,11 @@ function drawPirate() {
   }
   translate(person.body.position.x, person.body.position.y);
   rotate(person.body.angle);
+  fill(40);
+  stroke(0);
+  rect(-PERSON_WIDTH, -PERSON_HEIGHT, PERSON_WIDTH * 2, 5);
+  fill((1 - pow(person.health, 2)) * 255, pow(person.health, 2) * 255, 0);
+  rect(-PERSON_WIDTH, -PERSON_HEIGHT, PERSON_WIDTH * 2 * person.health, 5);
   pirateSpriteSheet.drawFrame(
     pirateFrame,
     -PERSON_WIDTH,
@@ -254,7 +281,9 @@ function spawnJelly(x, y) {
       x,
       y
     ) {
-      return Bodies.rectangle(x, y, 5, 2);
+      let tentaclePart = Bodies.rectangle(x, y, 5, 2);
+      tentaclePart.isJellyTentacle = true;
+      return tentaclePart;
     });
     Composites.chain(tentacle, 0.5, 0, -0.5, 0, {
       stiffness: 0.8,
