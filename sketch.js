@@ -118,7 +118,7 @@ function spawnPirate(x, y) {
   group = Body.nextGroup(true);
   person = {};
   person.body = Bodies.rectangle(x, y, PERSON_WIDTH, PERSON_HEIGHT, {
-    // inertia: Infinity,
+    inertia: 100,
     frictionAir: 0.03,
   });
 
