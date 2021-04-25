@@ -296,7 +296,7 @@ function updatePirate() {
   let clampedDt = max(deltaTime, 1.0);
   let mouse = vec(mouseX, mouseY);
   let forceVec = mult(norm(sub(mouse, person.body.position)), 0.0003);
-  forceVec.y = 0;
+  forceVec.y *= 0.3;
   Body.applyForce(person.body, person.body.position, forceVec);
   swimUp(mouseIsPressed);
 }
