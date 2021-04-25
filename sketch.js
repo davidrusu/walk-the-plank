@@ -179,6 +179,9 @@ function spawnPirate(x, y) {
 function damagePirate(damage) {
   console.log("damage", damage);
   person.health = max(0, person.health - damage);
+  if (person.health == 0) {
+    dead = true;
+  }
 }
 
 let rockFrame = 0;
@@ -482,7 +485,8 @@ function drawDeathScreen() {
   textSize(64);
   fill(255);
   textAlign(CENTER);
-  text("You Have Died.", windowWidth / 2, windowHeight / 2);
+  msg = person.health <= 0 ? "You Have Died." : "You Have Run Out Of Oxygen.";
+  text(msg, windowWidth / 2, windowHeight / 2);
 }
 
 function drawConstraint(constraint) {
