@@ -40,9 +40,11 @@ let person;
 let camera = vec(0, 0);
 let mouse = vec(0, 0);
 let swimming = false;
-let dead = false;
 let maxOxygen;
 let oxygen;
+let screenBrightness;
+let timeOfDeath;
+let state = "ALIVE"; // ALIVE, DEAD, TRANSITION
 
 let pirateIdleSpriteSheet;
 let pirateSwimSpriteSheets;
@@ -82,14 +84,14 @@ function setup() {
   engine = Engine.create();
   engine.gravity.y = 0.05;
 
-  // const mouse = Mouse.create(canvas.elt);
-  // const mouseParams = {
-  //   mouse: mouse,
-  //   constraint: { stiffness: 0.05 },
-  // };
-  // mouseConstraint = MouseConstraint.create(engine, mouseParams);
-  // mouseConstraint.mouse.pixelRatio = pixelDensity();
-  // World.add(engine.world, mouseConstraint);
+  const mouse = Mouse.create(canvas.elt);
+  const mouseParams = {
+    mouse: mouse,
+    constraint: { stiffness: 0.05 },
+  };
+  mouseConstraint = MouseConstraint.create(engine, mouseParams);
+  mouseConstraint.mouse.pixelRatio = pixelDensity();
+  World.add(engine.world, mouseConstraint);
 
   spawnPirate(windowWidth / 2, 100);
 
@@ -180,10 +182,14 @@ function spawnPirate(x, y) {
 }
 
 function damagePirate(damage) {
+  if (person.health == 0) {
+    return;
+  }
   console.log("damage", damage);
   person.health = max(0, person.health - damage);
   if (person.health == 0) {
-    dead = true;
+    timeOfDeath = millis();
+    state = "TRANSITION";
   }
 }
 
@@ -283,14 +289,19 @@ function spawnJelly(x, y) {
     var group = Body.nextGroup(true);
     let joinX = (p - 0.5) * width * 0.5;
     let joinY = 0;
-    let tentacle = Composites.stack(x + joinX, y + joinY, 1, 8, 0, 0, function (
-      x,
-      y
-    ) {
-      let tentaclePart = Bodies.rectangle(x, y, 5, 2);
-      tentaclePart.isJellyTentacle = true;
-      return tentaclePart;
-    });
+    let tentacle = Composites.stack(
+      x + joinX,
+      y + joinY,
+      1,
+      8,
+      0,
+      0,
+      function (x, y) {
+        let tentaclePart = Bodies.rectangle(x, y, 5, 2);
+        tentaclePart.isJellyTentacle = true;
+        return tentaclePart;
+      }
+    );
     Composites.chain(tentacle, 0.5, 0, -0.5, 0, {
       stiffness: 0.8,
       length: 2,
@@ -470,41 +481,56 @@ function drawBubbleSystem() {
 }
 
 function draw() {
-  if (dead) {
+  if (state == "DEAD") {
     drawDeathScreen();
-    return;
+  } else if (state == "ALIVE") {
+    background(10, 30, 50);
+
+    camera = lerpVec(
+      camera,
+      sub(person.body.position, mult(vec(windowWidth, windowHeight), 0.5)),
+      0.01
+    );
+
+    mouse = add(camera, vec(mouseX, mouseY));
+
+    translate(-camera.x, -camera.y);
+
+    updatePirate();
+    updateBubbleSystem();
+    updateJellySystem();
+    fill(255);
+
+    drawJellySystem();
+    drawPirate();
+    drawBubbleSystem();
+    translate(camera.x, camera.y);
+    drawOxygenOverlay();
+  } else if (state == "TRANSITION") {
+    background(10, 30, 50);
+    drawJellySystem();
+    drawPirate();
+    drawBubbleSystem();
+    screenBrightness = lerp(
+      1 - oxygen / maxOxygen,
+      1,
+      (millis() - timeOfDeath) / 2000
+    );
+    fill(`rgba(0, 0, 0, ${screenBrightness})`);
+    rect(0, 0, windowWidth, windowHeight);
+    if (millis() - timeOfDeath > 2000) {
+      state = "DEAD";
+    }
   }
-  background(10, 30, 50);
-
-  camera = lerpVec(
-    camera,
-    sub(person.body.position, mult(vec(windowWidth, windowHeight), 0.5)),
-    0.01
-  );
-
-  mouse = add(camera, vec(mouseX, mouseY));
-
-  translate(-camera.x, -camera.y);
-
-  updatePirate();
-  updateBubbleSystem();
-  updateJellySystem();
-  fill(255);
-
-  drawJellySystem();
-  drawPirate();
-  drawBubbleSystem();
-  translate(camera.x, camera.y);
-  drawOxygenOverlay();
 }
 
 function drawOxygenOverlay() {
   oxygen -= deltaTime;
-  oxygenPercentage = max(1 - oxygen / maxOxygen, 0);
-  fill(`rgba(0, 0, 0, ${oxygenPercentage})`);
+  screenBrightness = max(1 - oxygen / maxOxygen, 0);
+  fill(`rgba(0, 0, 0, ${screenBrightness})`);
   rect(0, 0, windowWidth, windowHeight);
   if (oxygen < 0) {
-    dead = true;
+    state = "DEAD";
   }
 }
 
