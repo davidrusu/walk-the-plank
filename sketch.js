@@ -21,7 +21,7 @@ const mult = Vector.mult;
 const div = Vector.div;
 const norm = Vector.normalise;
 const mag = Vector.magnitude;
-const rotate = Vector.rotate;
+const rotateVec = Vector.rotate;
 
 // matter objects
 let engine;
@@ -118,7 +118,7 @@ function spawnPirate(x, y) {
   group = Body.nextGroup(true);
   person = {};
   person.body = Bodies.rectangle(x, y, PERSON_WIDTH, PERSON_HEIGHT, {
-    inertia: Infinity,
+    // inertia: Infinity,
     frictionAir: 0.03,
   });
 
@@ -179,10 +179,12 @@ function drawPirate() {
   if (swimming) {
     pirateSpriteSheet = pirateSwimSpriteSheets[pirateSwimFrame];
   }
+  translate(person.body.position.x, person.body.position.y);
+  rotate(person.body.angle);
   pirateSpriteSheet.drawFrame(
     pirateFrame,
-    person.body.position.x - PERSON_WIDTH,
-    person.body.position.y - PERSON_HEIGHT,
+    -PERSON_WIDTH,
+    -PERSON_HEIGHT,
     PERSON_WIDTH * 2,
     PERSON_HEIGHT * 2
   );
@@ -199,16 +201,19 @@ function drawPirate() {
     let chainKnotRadius = PERSON_WIDTH * 0.45;
     let iOffset = i * 3 - 2;
     curve(
-      person.body.position.x - chainKnotRadius,
-      person.body.position.y + iOffset,
-      person.body.position.x - chainKnotRadius,
-      person.body.position.y + 15 + iOffset,
-      person.body.position.x + chainKnotRadius,
-      person.body.position.y + 15 + iOffset,
-      person.body.position.x + chainKnotRadius,
-      person.body.position.y + iOffset
+      -chainKnotRadius,
+      iOffset,
+      -chainKnotRadius,
+      15 + iOffset,
+      chainKnotRadius,
+      15 + iOffset,
+      chainKnotRadius,
+      iOffset
     );
   }
+  rotate(-person.body.angle);
+  translate(-person.body.position.x, -person.body.position.y);
+
   fill(60);
   noStroke();
   drawComposite(person.chain);
@@ -274,7 +279,7 @@ function spawnJelly(x, y) {
 function updateJellySystem() {
   jellies.forEach(([h, ts]) => {
     if (random() < 0.01) {
-      Body.applyForce(h, h.position, rotate(vec(0, -0.001), h.angle));
+      Body.applyForce(h, h.position, rotateVec(vec(0, -0.001), h.angle));
     }
   });
 }
@@ -307,7 +312,7 @@ function swimUp(m) {
     Body.applyForce(
       person.body,
       person.body.position,
-      rotate(vec(0, -0.0004), person.body.angle)
+      rotateVec(vec(0, -0.0004), person.body.angle)
     );
     person.energy = max(person.energy - deltaTime, 0);
     swimming = true;
