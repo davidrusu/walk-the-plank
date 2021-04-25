@@ -285,7 +285,7 @@ function updateJellySystem() {
 function drawJellySystem() {
   jellies.forEach(([h, ts]) => {
     noStroke();
-    fill(70, 130, 200);
+    fill(130, 200, 240);
     drawVerticies(h.vertices);
     ts.forEach((t) => drawComposite(t));
   });
