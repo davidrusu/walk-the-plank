@@ -283,19 +283,14 @@ function spawnJelly(x, y) {
     var group = Body.nextGroup(true);
     let joinX = (p - 0.5) * width * 0.5;
     let joinY = 0;
-    let tentacle = Composites.stack(
-      x + joinX,
-      y + joinY,
-      1,
-      8,
-      0,
-      0,
-      function (x, y) {
-        let tentaclePart = Bodies.rectangle(x, y, 5, 2);
-        tentaclePart.isJellyTentacle = true;
-        return tentaclePart;
-      }
-    );
+    let tentacle = Composites.stack(x + joinX, y + joinY, 1, 8, 0, 0, function (
+      x,
+      y
+    ) {
+      let tentaclePart = Bodies.rectangle(x, y, 5, 2);
+      tentaclePart.isJellyTentacle = true;
+      return tentaclePart;
+    });
     Composites.chain(tentacle, 0.5, 0, -0.5, 0, {
       stiffness: 0.8,
       length: 2,
@@ -499,6 +494,7 @@ function draw() {
   drawJellySystem();
   drawPirate();
   drawBubbleSystem();
+  translate(camera.x, camera.y);
   drawOxygenOverlay();
 }
 
