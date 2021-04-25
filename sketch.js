@@ -480,9 +480,12 @@ function draw() {
 
 function drawOxygenOverlay() {
   oxygen -= deltaTime;
-  oxygenPercentage = 1 - oxygen / maxOxygen;
+  oxygenPercentage = max(1 - oxygen / maxOxygen, 0);
   fill(`rgba(0, 0, 0, ${oxygenPercentage})`);
   rect(0, 0, windowWidth, windowHeight);
+  if (oxygen < 0) {
+    dead = true;
+  }
 }
 
 function drawDeathScreen() {
