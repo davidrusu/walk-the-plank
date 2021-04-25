@@ -95,7 +95,7 @@ function setup() {
 
   spawnPirate(windowWidth / 2, 100);
 
-  for (var i = 0; i < 10; i++) {
+  for (var i = 0; i < 30; i++) {
     spawnJelly(random(windowWidth), random(windowHeight));
   }
   Engine.run(engine);
